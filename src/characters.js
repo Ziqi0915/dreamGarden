@@ -2,7 +2,7 @@ import * as T from 'three';
 import {TessellateModifier} from 'three/addons/modifiers/TessellateModifier.js';
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {addRabbitHead} from './rabbit-head';
-import {createRabbitShirtGeometry,rabbitShirtFront,createRabbitTrouserGeometry,rabbitTrouserFront} from './rabbit-body';
+import {RABBIT_SHOULDER,createRabbitShirtGeometry,rabbitShirtFront,createRabbitTrouserGeometry,rabbitTrouserFront} from './rabbit-body';
 import {finishTextile} from './textiles';
 
 // Shared sculpted characters with physical mascot proportions.
@@ -55,18 +55,18 @@ export function addRabbit(world,moving,mat,x,z,scale=1,theme=0) {
     const fabric=mat(P.white).clone();fabric.map=texture;fabric.roughness=.88;if(theme===0)finishTextile(fabric,'canvas');return fabric;
   }
   const shirtFabric=!lake?stripedFabric(8,true):null;
-  const sleeveFabric=!lake?stripedFabric(6):null;
-  const torso=mesh(createRabbitShirtGeometry(),lake?0x73a4be:P.white,0,0,0,body);
-  torso.name='stuffed-rabbit-shirt';
-  if(shirtFabric)torso.material=shirtFabric;
-  // Sleeve segments are attached to shoulder pivots so waving stays coherent.
+  const torso=new T.SkinnedMesh(createRabbitShirtGeometry(),shirtFabric||mat(0x73a4be));
+  torso.name='continuous-rabbit-shirt-and-sleeves';
+  torso.castShadow=true;torso.receiveShadow=true;
+  const rootBone=new T.Bone();torso.add(rootBone);
+  // The shared shirt bends around the shoulder instead of opening a seam.
   const arms=[];
   for(const side of [-1,1]) {
-    const arm=new T.Group();arm.position.set(side*.49,1.26,0);body.add(arm);arm.rotation.z=side*.50;arms.push(arm);
-    const sleeve=oval(lake?0x73a4be:P.white,0,-.21,0,.19,.30,.20,arm);
-    if(sleeveFabric)sleeve.material=sleeveFabric;
+    const arm=new T.Bone();arm.position.set(side*RABBIT_SHOULDER.x,RABBIT_SHOULDER.y,0);
+    arm.rotation.z=side*RABBIT_SHOULDER.angle;rootBone.add(arm);arms.push(arm);
     oval(P.white,0,-.53,.015,.175,.19,.16,arm).name='plush-paw';
   }
+  torso.bind(new T.Skeleton([rootBone,...arms]));body.add(torso);
   if(lake) {
     patch(rounded(-.46,.45,.92,.78,.1),0x73a4be,.19,.035,.025,body);
     for(const side of [-1,1]) {
@@ -150,7 +150,7 @@ export function addRabbit(world,moving,mat,x,z,scale=1,theme=0) {
   }
   const baseY=sitting?.565-seatBottom*scale:.2;g.position.y=baseY;
   // Keep feet/the seated pelvis planted while the head, arms and prop move.
-  moving.push(t=>{g.rotation.y=.32+Math.sin(t*.65)*.045;arms[1].rotation.z=.50+Math.sin(t*1.6)*.045;headPivot.rotation.z=Math.sin(t*.72)*.018;if(plant)plant.rotation.z=.08+Math.sin(t*.8)*.025});
+  moving.push(t=>{g.rotation.y=.32+Math.sin(t*.65)*.045;arms[1].rotation.z=RABBIT_SHOULDER.angle+Math.sin(t*1.6)*.045;headPivot.rotation.z=Math.sin(t*.72)*.018;if(plant)plant.rotation.z=.08+Math.sin(t*.8)*.025});
   return g;
 }
 

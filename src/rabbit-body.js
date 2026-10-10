@@ -4,6 +4,7 @@ import {MarchingCubes} from 'three/addons/objects/MarchingCubes.js';
 // Coordinates are shared with the character's clothes and shoulder pivots.
 // The neck opening is deliberately broad and flat, then tucked into the head.
 const SHIRT_DEPTH = .70;
+export const RABBIT_SHOULDER = {x: .49, y: 1.26, angle: .50};
 const shirtCurve = new T.CatmullRomCurve3([
   new T.Vector3(.39, .68, 0),
   new T.Vector3(.48, .75, 0),
@@ -33,17 +34,50 @@ export function rabbitShirtFront(x, y) {
 }
 
 export function createRabbitShirtGeometry() {
-  const points = [new T.Vector2(0, .68), ...shirtProfile, new T.Vector2(0, 1.38)];
-  const geometry = new T.LatheGeometry(points, 64);
-  geometry.scale(1, 1, SHIRT_DEPTH);
-  // A linear height UV keeps the collar's stripe width predictable on the
-  // pear-shaped body; its circumference still uses the lathe's U coordinate.
-  const positions = geometry.attributes.position, uv = geometry.attributes.uv;
-  for (let i = 0; i < positions.count; i++) uv.setY(i, (positions.getY(i) - .60) / .78);
-  geometry.computeVertexNormals();
-  geometry.computeBoundingBox();
-  geometry.computeBoundingSphere();
+  // A single surface replaces the hard intersections of separate sleeves.
+  const geometry = implicitGeometry(shirtDistance,64,.98,1.05);
+  const positions=geometry.attributes.position;
+  const uv=[],indices=[],weights=[];
+  for(let i=0;i<positions.count;i++) {
+    const x=positions.getX(i),y=positions.getY(i),z=positions.getZ(i);
+    const side=x<0?-1:1,local=armCoordinates(x,y,side);
+    const sleeveWeight=T.MathUtils.smoothstep(torsoDistance(x,y,z)-sleeveDistance(local.x,local.y,z),-.065,.065);
+    // Cloth stripes turn with the sleeve and meet the torso progressively.
+    const stripeY=T.MathUtils.lerp(y,1.33+local.y,sleeveWeight);
+    uv.push(.5,(stripeY-.60)/.78);
+    // Keep the torso fixed; gradually transfer the sleeve to its shoulder.
+    const influence=sleeveWeight*T.MathUtils.smoothstep(-local.y,-.035,.24);
+    indices.push(0,side<0?1:2,0,0);
+    weights.push(1-influence,influence,0,0);
+  }
+  geometry.setAttribute('uv',new T.Float32BufferAttribute(uv,2));
+  geometry.setAttribute('skinIndex',new T.Uint16BufferAttribute(indices,4));
+  geometry.setAttribute('skinWeight',new T.Float32BufferAttribute(weights,4));
   return geometry;
+}
+
+function armCoordinates(x,y,side) {
+  const angle=side*RABBIT_SHOULDER.angle,c=Math.cos(angle),s=Math.sin(angle);
+  const dx=x-side*RABBIT_SHOULDER.x,dy=y-RABBIT_SHOULDER.y;
+  return {x:c*dx+s*dy,y:-s*dx+c*dy};
+}
+
+function torsoDistance(x,y,z) {
+  const radius=shirtRadius(T.MathUtils.clamp(y,.68,1.38));
+  return Math.max(Math.hypot(x,z/SHIRT_DEPTH)-radius,.68-y,y-1.38);
+}
+
+function sleeveDistance(x,y,z) {
+  return ellipsoidDistance(x,y+.21,z,.19,.30,.20);
+}
+
+function shirtDistance(x,y,z) {
+  let d=torsoDistance(x,y,z);
+  for(const side of [-1,1]) {
+    const local=armCoordinates(x,y,side);
+    d=smoothUnion(d,sleeveDistance(local.x,local.y,z),.065);
+  }
+  return d;
 }
 
 function ellipsoidDistance(x, y, z, rx, ry, rz) {
@@ -83,7 +117,10 @@ export function rabbitTrouserFront(x, y) {
 }
 
 export function createRabbitTrouserGeometry() {
-  const resolution = 72, extent = .70, centerY = .48;
+  return implicitGeometry(trousersDistance,72,.70,.48);
+}
+
+function implicitGeometry(distance,resolution,extent,centerY) {
   // MarchingCubes only needs a material for initialization; callers own their
   // final clothing material, and the temporary allocation is disposed here.
   const temporaryMaterial = new T.MeshBasicMaterial();
@@ -95,7 +132,7 @@ export function createRabbitTrouserGeometry() {
       const py = (y / resolution * 2 - 1) * extent + centerY;
       for (let x = 0; x < resolution; x++) {
         const px = (x / resolution * 2 - 1) * extent;
-        polygonizer.field[x + y * resolution + z * resolution * resolution] = -trousersDistance(px, py, pz);
+        polygonizer.field[x + y * resolution + z * resolution * resolution] = -distance(px, py, pz);
       }
     }
   }
@@ -103,7 +140,7 @@ export function createRabbitTrouserGeometry() {
   if (!polygonizer.count || polygonizer.count >= polygonizer.positionArray.length / 3) {
     polygonizer.geometry.dispose();
     temporaryMaterial.dispose();
-    throw new Error('Rabbit trousers exceeded their geometry buffer.');
+    throw new Error('Rabbit clothing exceeded its geometry buffer.');
   }
   const positions = polygonizer.positionArray.slice(0, polygonizer.count * 3);
   const normals = polygonizer.normalArray.slice(0, polygonizer.count * 3);

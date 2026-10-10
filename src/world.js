@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {createCloudGeometry} from './sky-clouds';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {addRabbit,addBeeCarrot} from './characters';
 import {createTextilePalette,decoratePlushGarden,addFeltGround} from './textiles';
@@ -16,6 +17,7 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
   {t:.48,c:['#3d8fd4','#4f9edc','#7ebbe8','#f4efe2','#e3ecd2'],hemi:0xfff8e5,hemiI:1.9,sunC:0xffedcf,sunI:3.6,exp:1.3,at:[-2,12]},
   {t:.64,c:['#e36a42','#f09458','#f6c08a','#f8d7b0','#f0d2b4'],hemi:0xffb090,hemiI:1.05,sunC:0xff7a45,sunI:1.7,exp:1.12,at:[3,5]},
   {t:.76,c:['#5d7384','#6e8796','#8ea4b0','#c5d0d4','#d5ddd8'],hemi:0xb7c4cc,hemiI:.75,sunC:0x9aa8b0,sunI:.45,exp:1.05,at:[2,7]},
+  {t:.80,c:['#83b5df','#a9d0ea','#d1e5ef','#f8f3df','#e6ecd8'],hemi:0xfff3df,hemiI:1.45,sunC:0xffedcf,sunI:2.4,exp:1.22,at:[-1,9]},
   {t:.88,c:['#c5d5e2','#d7e4ee','#e8eef4','#f5f7f8','#eef2f4'],hemi:0xe4eef6,hemiI:1,sunC:0xd5e2ee,sunI:.7,exp:1.16,at:[1,8]},
   {t:1,c:['#070e26','#0c1c48','#16356e','#1e4e8c','#2a62a4'],hemi:0x8ea0d4,hemiI:.55,sunC:0x8ea6d0,sunI:.32,exp:.92,at:[6,3.2]}
  ];
@@ -37,12 +39,12 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
   skyTexture.needsUpdate=true;
   const gate=(start,end,fade=.08)=>Math.max(0,Math.min(1,Math.min((t-(start-fade))/fade,((end+fade)-t)/fade)));
   const cloudW=Math.max(gate(0,.66,.1),gate(.7,.82,.05)*.85);
-  const sunset=gate(.55,.72,.06),rainW=gate(.69,.77,.04),rbW=gate(.77,.83,.04),snowW=gate(.82,.93,.04),starW=gate(.94,1.08,.05);
+  const sunset=gate(.59,.66,.04),rainW=gate(.70,.74,.035),rbW=gate(.79,.81,.025),snowW=gate(.86,.90,.04),starW=gate(.98,1.08,.06);
   skyT=t;sunPivot.visible=false;
   const cloudOpacity=Math.min(1,Math.max(cloudW*(1-starW),rainW*.92,snowW*.55));
   const warm=Math.max(0,1-t/.4),cloudTint=mixHex(mixHex(mixHex(mixHex(0xfff7ee,0xffc7a4,warm),0xff8d58,sunset*.9),0x9eb0c0,rainW),0xe7eef6,snowW*.75);
   cloudTintHex=cloudTint;cloudMats.forEach(m=>{m.opacity=cloudOpacity;m.color.setHex(cloudTint)});
-  clouds.forEach(g=>{g.visible=cloudOpacity>.04;const s=g.userData.s*(1+rainW*.06);g.scale.set(s,s*.78,s*.15)});
+  clouds.forEach(g=>{g.visible=cloudOpacity>.04;const s=g.userData.s*(1+rainW*.06);g.scale.set(s,s*.88,s*.72)});
   rain.visible=rainW>.04;rainMat.opacity=rainW;snow.visible=snowW>.04;snowMats.forEach(m=>m.opacity=snowW);
   rbGroup.visible=rbW>.04;rbMats.forEach((m,i)=>m.opacity=.8*Math.min(1,Math.max(0,rbW*1.6-i*.1)));applyCover(snowW*snowW*(3-2*snowW));
   starDotMat.opacity=starW;starLineMat.opacity=starW;starGroup.visible=starW>.04;feltClouds.forEach(g=>g.visible=false);
@@ -71,13 +73,11 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
  const sunDisc=new T.Mesh(new T.CircleGeometry(.62,40),plain(0xfff7dc,1));sunDisc.renderOrder=3;
  sunPivot.add(sunHalo,sunRays,sunDisc);
  const cloudMats=[],clouds=[];
- const cloudGeo=new T.SphereGeometry(1,24,16);
- {const p=cloudGeo.attributes.position,col=new Float32Array(p.count*3);for(let i=0;i<p.count;i++){const k=Math.min(1,Math.max(0,(p.getY(i)+.5)/1.4)),e=k*k*(3-2*k);col[i*3]=.76+.24*e;col[i*3+1]=.83+.17*e;col[i*3+2]=.96+.04*e}cloudGeo.setAttribute('color',new T.BufferAttribute(col,3))}
- const cloudMat=new T.MeshBasicMaterial({color:0xffffff,vertexColors:true,transparent:true,depthWrite:false,toneMapped:false});cloudMats.push(cloudMat);
- const puffs=[[0,0,0,.95],[.9,-.2,.05,.7],[-.9,-.24,-.04,.66],[1.6,-.43,0,.42],[-1.62,-.45,.02,.4],[.4,.46,.1,.62],[-.38,.38,-.05,.54]];
- [3.5,3,3.3,2.7,3.1,2.6,2.9,3.2].forEach((s,n)=>{
+ const cloudMat=new T.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:1,emissive:0xd6e0eb,emissiveIntensity:.22,transparent:true,depthWrite:false});cloudMats.push(cloudMat);
+ const cloudGeometries=Array.from({length:3},(_,i)=>createCloudGeometry(i));
+ [2.3,1.8,2.5,1.7].forEach((s,n)=>{
   const g=new T.Group();g.visible=false;g.userData={s};skyFx.add(g);clouds.push(g);
-  puffs.forEach(([px,py,pz,ps])=>{const m=new T.Mesh(cloudGeo,cloudMat);m.position.set(px*(n%2?-1:1),py,pz);m.scale.set(ps,ps*.82,ps*.9);m.renderOrder=1;g.add(m)});
+  const cloud=new T.Mesh(cloudGeometries[n%3],cloudMat);cloud.name='soft-sky-cloud';cloud.rotation.z=(n%3-1)*.09;g.add(cloud);
  });
  const rainSeeds=scatter(150,17,15,.2,6.2),snowSeeds=scatter(80,16,14,.3,6.8),crystalSeeds=scatter(26,16,14,.3,6.8,500);
  const rain=new T.Group(),rainMat=plain(0xdcecfa,0,{map:dropTex});
@@ -254,7 +254,7 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
  controls.addEventListener('change',()=>{viewChanged=true});
  const skyDir=new T.Vector3(),skyRight=new T.Vector3(),skyUp=new T.Vector3();
  function skyPoint(rx,uy,target){camera.getWorldDirection(skyDir);skyRight.crossVectors(skyDir,camera.up).normalize();skyUp.crossVectors(skyRight,skyDir).normalize();skyDir.addScaledVector(skyRight,rx).addScaledVector(skyUp,uy).normalize();const bb=camera.position.dot(skyDir),tp=-bb+Math.sqrt(Math.max(0,bb*bb-(camera.position.lengthSq()-skyR*skyR)));return target.copy(camera.position).addScaledVector(skyDir,tp)}
- function stickSky(){if(skyStuck||el.clientWidth<2)return;skyStuck=true;controls.update();[[-.42,.18],[-.14,.2],[.12,.17],[.38,.14],[-.3,.11],[.05,.09],[.24,.21],[-.08,.13]].forEach(([rx,uy],i)=>{if(!clouds[i])return;skyPoint(rx,uy,clouds[i].position);clouds[i].lookAt(0,0,0)});for(let i=0;i<starLineN;i++){const main=i<32,u=main?i/31:(i-32)/13,rx=main?-.55+Math.pow(u,.85)*.95+(hash(i+3)-.5)*.04:.08+u*.22,uy=main?.04+u*.13+Math.sin(u*Math.PI)*.045+(hash(i+9)-.5)*.016:.16-u*.08+(hash(i+5)-.5)*.014;skyPoint(rx,uy,starAnchor.position);starAnchor.up.set(0,1,0);starAnchor.lookAt(0,0,0);const sz=.5+hash(i+80)*.34+(main&&u>.35&&u<.6?.2:0);starAnchor.scale.set(sz,sz,1);starAnchor.updateMatrix();starLine.setMatrixAt(i,starAnchor.matrix)}starLine.instanceMatrix.needsUpdate=true;setSky(skyT)}
+ function stickSky(){if(skyStuck||el.clientWidth<2)return;skyStuck=true;controls.update();[[-.26,.17],[.04,.20],[.27,.15],[-.34,.02]].forEach(([rx,uy],i)=>{if(!clouds[i])return;skyPoint(rx,uy,clouds[i].position);clouds[i].lookAt(0,0,0)});for(let i=0;i<starLineN;i++){const main=i<32,u=main?i/31:(i-32)/13,rx=main?-.55+Math.pow(u,.85)*.95+(hash(i+3)-.5)*.04:.08+u*.22,uy=main?.04+u*.13+Math.sin(u*Math.PI)*.045+(hash(i+9)-.5)*.016:.16-u*.08+(hash(i+5)-.5)*.014;skyPoint(rx,uy,starAnchor.position);starAnchor.up.set(0,1,0);starAnchor.lookAt(0,0,0);const sz=.5+hash(i+80)*.34+(main&&u>.35&&u<.6?.2:0);starAnchor.scale.set(sz,sz,1);starAnchor.updateMatrix();starLine.setMatrixAt(i,starAnchor.matrix)}starLine.instanceMatrix.needsUpdate=true;setSky(skyT)}
  function resize(){const w=el.clientWidth,h=el.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.zoom=Math.min(1,camera.aspect/(theme===0?1.45:1.0));camera.updateProjectionMatrix();stickSky();viewChanged=true}
  const ro=new ResizeObserver(resize);ro.observe(el);resize();
  function render(){raf=requestAnimationFrame(render);const dt=clock.getDelta();if(!paused)time+=dt;controls.update();
@@ -264,5 +264,5 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
      renderer.render(scene,camera);lastRender=clock.elapsedTime;viewChanged=false;
    }
  }
- render();onReady?.();return {pause(v){paused=v;viewChanged=true},setSky,reset(){camera.position.copy(defaultView);controls.target.set(0,theme===0?.85:1.1,0);controls.update();viewChanged=true},zoom(f){camera.position.sub(controls.target).multiplyScalar(f).add(controls.target);viewChanged=true},dispose(){cancelAnimationFrame(raf);ro.disconnect();controls.dispose();const geometries=new Set(),materials=new Set(),textures=new Set();scene.traverse(o=>{if(o.isInstancedMesh)o.dispose();if(o.geometry)geometries.add(o.geometry);if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>materials.add(m))});materials.forEach(m=>{Object.values(m).forEach(v=>{if(v?.isTexture)textures.add(v)});m.dispose()});textures.forEach(t=>t.dispose());geometries.forEach(g=>g.dispose());mats.forEach(m=>{if(!materials.has(m))m.dispose()});textiles?.disposeUnused(materials);renderer.dispose();renderer.domElement.remove()}};
+ render();onReady?.();return {pause(v){paused=v;viewChanged=true},setSky,reset(){camera.position.copy(defaultView);controls.target.set(0,theme===0?.85:1.1,0);controls.update();viewChanged=true},zoom(f){camera.position.sub(controls.target).multiplyScalar(f).add(controls.target);viewChanged=true},dispose(){cancelAnimationFrame(raf);ro.disconnect();controls.dispose();const geometries=new Set(),materials=new Set(),textures=new Set();scene.traverse(o=>{if(o.isInstancedMesh)o.dispose();if(o.isSkinnedMesh)o.skeleton.dispose();if(o.geometry)geometries.add(o.geometry);if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>materials.add(m))});materials.forEach(m=>{Object.values(m).forEach(v=>{if(v?.isTexture)textures.add(v)});m.dispose()});textures.forEach(t=>t.dispose());geometries.forEach(g=>g.dispose());mats.forEach(m=>{if(!materials.has(m))m.dispose()});textiles?.disposeUnused(materials);renderer.dispose();renderer.domElement.remove()}};
 }
