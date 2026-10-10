@@ -1,9 +1,10 @@
 import * as T from 'three';
 import {createNightFlowers,luminousPetal,luminousBloom} from './night-flowers';
+import {addLivingMeadow} from './meadow';
 import {createCloudGeometry} from './sky-clouds';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {addRabbit,addBeeCarrot} from './characters';
-import {createTextilePalette,decoratePlushGarden,addFeltGround} from './textiles';
+import {createTextilePalette,decoratePlushGarden} from './textiles';
 const C={green:0x6d995e,leaf:0x4e8452,yellow:0xf5c84e,pink:0xeb8da3,cream:0xfff7df,white:0xfffcf0,blue:0x496982,orange:0xee8545};
 export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
  const scene=new T.Scene();const night=theme===1;let viewChanged=true;let nightFlowers=null,flowerNight=0;
@@ -206,7 +207,7 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
  function cyl(p,c,x,y,z,r,h,r2=r){return mesh(new T.CylinderGeometry(r2,r,h,48),c,p,x,y,z)}
  function group(x=0,y=0,z=0){const g=new T.Group();g.position.set(x,y,z);world.add(g);return g}
  function label(text,w,h){const cv=document.createElement('canvas');cv.width=1024;cv.height=256;const ctx=cv.getContext('2d');ctx.fillStyle='#fff8df';ctx.font='900 100px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,512,128);const tx=new T.CanvasTexture(cv);const m=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:tx,transparent:true,side:T.DoubleSide}));return m}
- cyl(world,night?0x54618c:theme===0?0xd4bf9d:0xb3ba89,0,-.32,0,5.4,.65);cyl(world,night?0x487d9e:theme===2?0x80bfc5:0x9caf7c,0,.02,0,5.36,.16);
+ cyl(world,night?0x54618c:theme===0?0xd4bf9d:0xb3ba89,0,-.32,0,5.4,.65);cyl(world,night?0x487d9e:theme===2?0x80bfc5:0x66a64e,0,.02,0,5.36,.16);
  // sculpted pebble edge
  for(let i=0;i<55;i++){const a=i/55*Math.PI*2;ball(world,night?0x7a87ae:0xe1d4b3,Math.cos(a)*5.1,.17,Math.sin(a)*5.1,.19,.13,.17)}
  function flower(x,z,size=1,color=C.pink){const g=group(x,.16,z);g.scale.setScalar(size);cyl(g,C.leaf,0,.48,0,.045,.85);const leaf=ball(g,C.green,.17,.35,0,.23,.065,.12);leaf.rotation.z=.5;for(let i=0;i<5;i++){const a=i*Math.PI*2/5;luminousPetal(ball(g,color,Math.cos(a)*.23,1+Math.sin(a)*.23,0,.19,.19,.095))}luminousPetal(ball(g,C.yellow,0,1,.1,.14,.14,.08),1.2);luminousBloom(g,[0,1,.06],1.6);moving.push(t=>{g.rotation.z=Math.sin(t*1.2+x)*.065});return g}
@@ -221,7 +222,7 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
  moving.push(t=>{g.position.y=.43+Math.sin(t*1.2+x)*.09;g.rotation.z=Math.sin(t*1.3)*.035;g.position.x=x+Math.sin(t*.3)*.23});return g}
  if(theme===0){
  arch();rabbit(.65,1.2,1.22);addBeeCarrot(world,moving,mat,-1.35,1.8);bee(-2.8,2.7,.3);bee(3,3,-1);
- addFeltGround(world,new T.MeshStandardMaterial({color:0xffffff,roughness:1}));
+ for(const seed of addLivingMeadow(world,moving))flower(seed.x,seed.z,seed.size,seed.color);
  for(let i=0;i<56;i++){const a=i*2.399;const r=3.4+(i%4)*.30;flower(Math.cos(a)*r,Math.sin(a)*r,.38+(i%4)*.10,[C.pink,C.yellow,C.white,0xdd7756][i%4])}
  for(const p of [[-3.5,-1],[3,-2],[0,-3.8],[-3,2.3]])bush(...p);
  fence(-1.4,-3.7,8);fence(2.5,-2.7,4);
