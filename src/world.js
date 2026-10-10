@@ -19,8 +19,8 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
   {t:.48,c:['#3d8fd4','#4f9edc','#7ebbe8','#f4efe2','#e3ecd2'],hemi:0xfff8e5,hemiI:1.9,sunC:0xffedcf,sunI:3.6,exp:1.3,at:[-2,12]},
   {t:.64,c:['#e36a42','#f09458','#f6c08a','#f8d7b0','#f0d2b4'],hemi:0xffb090,hemiI:1.05,sunC:0xff7a45,sunI:1.7,exp:1.12,at:[3,5]},
   {t:.76,c:['#5d7384','#6e8796','#8ea4b0','#c5d0d4','#d5ddd8'],hemi:0xb7c4cc,hemiI:.75,sunC:0x9aa8b0,sunI:.45,exp:1.05,at:[2,7]},
-  {t:.80,c:['#83b5df','#a9d0ea','#d1e5ef','#f8f3df','#e6ecd8'],hemi:0xfff3df,hemiI:1.45,sunC:0xffedcf,sunI:2.4,exp:1.22,at:[-1,9]},
-  {t:.88,c:['#c5d5e2','#d7e4ee','#e8eef4','#f5f7f8','#eef2f4'],hemi:0xe4eef6,hemiI:1,sunC:0xd5e2ee,sunI:.7,exp:1.16,at:[1,8]},
+  {t:.80,c:['#6e9fe0','#c9a6e4','#f0b4c6','#f3d27a','#e8f3ea'],hemi:0xffe4d0,hemiI:1.5,sunC:0xffd0a4,sunI:2.15,exp:1.18,at:[-1,9]},
+  {t:.88,c:['#e8eef6','#f4f7fb','#f8fafc','#ffffff','#f7f9fc'],hemi:0xf5f8fc,hemiI:1.2,sunC:0xf7fbff,sunI:.9,exp:1.22,at:[1,8]},
   {t:1,c:['#070e26','#0c1c48','#16356e','#1e4e8c','#2a62a4'],hemi:0x8ea0d4,hemiI:.55,sunC:0x8ea6d0,sunI:.32,exp:.92,at:[6,3.2]}
  ];
  const skyStops=[0,.38,.6,.84,1];
@@ -44,7 +44,7 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
   const sunset=gate(.59,.66,.04),rainW=gate(.70,.74,.035),rbW=gate(.79,.81,.025),snowW=gate(.86,.90,.04),starW=gate(.98,1.08,.06);
   skyT=t;sunPivot.visible=false;flowerNight=starW;nightFlowers?.setNight(starW);
   const cloudOpacity=Math.min(1,Math.max(cloudW*(1-starW),rainW*.92,snowW*.55));
-  const warm=Math.max(0,1-t/.4),cloudTint=mixHex(mixHex(mixHex(mixHex(0xfff7ee,0xffc7a4,warm),0xff8d58,sunset*.9),0x9eb0c0,rainW),0xe7eef6,snowW*.75);
+  const warm=Math.max(0,1-t/.4),cloudTint=mixHex(mixHex(mixHex(mixHex(0xfff7ee,0xffc7a4,warm),0xff8d58,sunset*.9),0x9eb0c0,rainW),0xfbfdff,snowW);
   cloudTintHex=cloudTint;cloudMats.forEach(m=>{m.opacity=cloudOpacity;m.color.setHex(cloudTint)});
   clouds.forEach(g=>{g.visible=cloudOpacity>.04;const s=g.userData.s*(1+rainW*.06);g.scale.set(s,s*.88,s*.72)});
   rain.visible=rainW>.04;rainMat.opacity=rainW;snow.visible=snowW>.04;snowMats.forEach(m=>m.opacity=snowW);
@@ -103,16 +103,16 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
  const rbCols=[0xff6b6b,0xff9f4a,0xffd95a,0x7ed68c,0x6cc4ea,0x7b8ee6,0xb78be3];
  const rbMats=rbCols.map(c=>plain(c,0,{vertexColors:true}));
  function rbGeo(r0,r1){const g=new T.RingGeometry(r0,r1,72,1,0,Math.PI),p=g.attributes.position,col=new Float32Array(p.count*4);for(let i=0;i<p.count;i++){const k=Math.min(1,Math.max(0,Math.sin(Math.atan2(p.getY(i),p.getX(i)))*3.4));col.set([1,1,1,k*k*(3-2*k)],i*4)}g.setAttribute('color',new T.BufferAttribute(col,4));return g}
- rbCols.forEach((c,i)=>{const m=new T.Mesh(rbGeo(3.05-(i+1)*.16,3.05-i*.16+.01),rbMats[i]);m.renderOrder=-1;rbGroup.add(m)});
+ rbCols.forEach((c,i)=>{const m=new T.Mesh(rbGeo(3.35-(i+1)*.26,3.35-i*.26+.012),rbMats[i]);m.renderOrder=-1;rbGroup.add(m)});
  const snowLayer=new T.Group();snowLayer.visible=false;skyFx.add(snowLayer);
- const snowShade=new T.MeshStandardMaterial({color:0xeef3fb,roughness:1});
+ const snowShade=new T.MeshStandardMaterial({color:0xf7fbff,roughness:1});const snowCapGeo=new T.SphereGeometry(1,16,12);
  const snowParts=[],floes=[];
  function snowMesh(geo,x,y,z,sx,sy,sz,mode){const m=new T.Mesh(geo,snowShade);m.position.set(x,y,z);m.receiveShadow=true;snowLayer.add(m);snowParts.push({m,sx,sy,sz,mode});return m}
  {
   const ball=new T.SphereGeometry(1,20,14);
   if(theme===0){
    const slabGeo=new T.CylinderGeometry(5,5.1,.14,64);slabGeo.translate(0,.07,0);
-   snowMesh(slabGeo,0,.1,0,1,1,1,'y');
+   snowMesh(slabGeo,0,.1,0,1.06,1,1.06,'y');
    for(let i=0;i<64;i++){const a=hash(i*5+900)*6.283,r=Math.sqrt(hash(i*5+901))*4.7,s=.28+hash(i*5+902)*.38;snowMesh(ball,Math.cos(a)*r,.2,Math.sin(a)*r,s,s*(.3+hash(i*5+903)*.15),s,'all')}
   }else{
    if(theme===1)snowMesh(ball,2.6,.57,1.15,1.45,.09,1,'all');else snowMesh(ball,1.8,.575,1.6,1.08,.08,1.08,'all');
@@ -125,7 +125,9 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
    }
   }
  }
- function applyCover(c){snowLayer.visible=c>.02;snowParts.forEach(({m,sx,sy,sz,mode})=>m.scale.set(mode==='y'?sx:sx*c,sy*c,mode==='y'?sz:sz*c))}
+ const plantCaps=[];let meadowSnow=null;
+ function plantCap(parent,x,y,z,sx,sy,sz){const m=new T.Mesh(snowCapGeo,snowShade);m.position.set(x,y,z);m.scale.set(0,0,0);m.receiveShadow=true;parent.add(m);plantCaps.push({m,sx,sy,sz});return m}
+ function applyCover(c){snowLayer.visible=c>.02;snowParts.forEach(({m,sx,sy,sz,mode})=>m.scale.set(mode==='y'?sx:sx*c,sy*c,mode==='y'?sz:sz*c));plantCaps.forEach(({m,sx,sy,sz})=>{m.visible=c>.02;m.scale.set(sx*c,sy*c,sz*c)});meadowSnow?.(c)}
  const bolt=new T.Group();bolt.visible=false;skyFx.add(bolt);
  const boltCoreMat=plain(0xffffff,0),boltGlowMat=plain(0xb9ccff,0,{blending:T.AdditiveBlending}),boltFlareMat=plain(0xcfdcff,0,{map:glowTex,blending:T.AdditiveBlending});
  const boltCore=new T.Mesh(new T.BufferGeometry(),boltCoreMat),boltGlow=new T.Mesh(new T.BufferGeometry(),boltGlowMat),boltFlare=new T.Mesh(new T.PlaneGeometry(1,1),boltFlareMat);
@@ -141,16 +143,16 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
   const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setIndex(idx);return g;
  }
  function makeBolt(x0,y0,x1,y1){
-  const main=[[0,y0]];jag([0,y0],[x1-x0,y1],1.5,5,main);main.taper=true;const paths=[main];
-  for(let k=0;k<3;k++){const i=6+Math.floor(Math.random()*(main.length-14)),s=main[i],dir=Math.random()<.5?-1:1,e=[s[0]+dir*(.7+Math.random()*1.1),s[1]-(.9+Math.random()*1.3)],br=[s];jag(s,e,.6,3,br);br.taper=true;br.w=.55;paths.push(br)}
-  boltCore.geometry.dispose();boltGlow.geometry.dispose();boltCore.geometry=ribbon(paths,.05);boltGlow.geometry=ribbon(paths,.2);
-  boltFlare.position.set(x1-x0,y1+.1,.02);boltFlare.scale.setScalar(2.4);
+  const main=[[0,y0]];jag([0,y0],[x1-x0,y1],4.6,5,main);main.taper=true;const paths=[main];
+  for(let k=0;k<4;k++){const i=6+Math.floor(Math.random()*(main.length-14)),s=main[i],dir=Math.random()<.5?-1:1,e=[s[0]+dir*(2.4+Math.random()*3.4),s[1]-(2.8+Math.random()*4.2)],br=[s];jag(s,e,1.8,3,br);br.taper=true;br.w=.62;paths.push(br)}
+  boltCore.geometry.dispose();boltGlow.geometry.dispose();boltCore.geometry=ribbon(paths,.18);boltGlow.geometry=ribbon(paths,.72);
+  boltFlare.position.set(x1-x0,y1,.02);boltFlare.scale.setScalar(8);
  }
  let nextStrike=1.2,strikeT=-9,strikeAmp=0,strikeBolt=false;
  function lightningStep(t){
   if(rain.visible&&rainMat.opacity>.6&&t>=nextStrike){
    nextStrike=t+2.2+Math.random()*4.5;strikeT=t;strikeAmp=.6+Math.random()*.4;strikeBolt=Math.random()<.7;
-   if(strikeBolt){const pool=clouds.filter(g=>g.visible),g=pool[Math.floor(Math.random()*pool.length)];if(!g)strikeBolt=false;else{const x0=g.position.x+(Math.random()-.5)*.8,z=g.position.z,x1=x0+(Math.random()-.5)*1.6;makeBolt(x0,g.position.y-.1,x1,x1*x1+z*z<24?.22:-2.5);bolt.position.set(x0,0,z)}}
+   if(strikeBolt){const pool=clouds.filter(g=>g.visible),g=pool[Math.floor(Math.random()*pool.length)];if(!g)strikeBolt=false;else{const x0=g.position.x+(Math.random()-.5)*2.4,z=g.position.z,y0=g.position.y-.6,x1=x0+(Math.random()-.5)*7;makeBolt(x0,y0,x1,y0-(14+Math.random()*6));bolt.position.set(x0,0,z)}}
   }
   const a=t-strikeT,e=a<0?0:a<.07?1:a<.12?.2:a<.2?.9:Math.max(0,1-(a-.2)/.45),flash=e*strikeAmp;
   bolt.visible=strikeBolt&&e>0;
@@ -206,28 +208,28 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
  function box(p,c,x,y,z,w,h,d){return mesh(new T.BoxGeometry(w,h,d),c,p,x,y,z)}
  function cyl(p,c,x,y,z,r,h,r2=r){return mesh(new T.CylinderGeometry(r2,r,h,48),c,p,x,y,z)}
  function group(x=0,y=0,z=0){const g=new T.Group();g.position.set(x,y,z);world.add(g);return g}
- function label(text,w,h){const cv=document.createElement('canvas');cv.width=1024;cv.height=256;const ctx=cv.getContext('2d');ctx.fillStyle='#fff8df';ctx.font='900 100px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,512,128);const tx=new T.CanvasTexture(cv);const m=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:tx,transparent:true,side:T.DoubleSide}));return m}
+ function label(text,w,h){const cv=document.createElement('canvas');cv.width=1024;cv.height=256;const ctx=cv.getContext('2d');ctx.fillStyle='#fff8df';ctx.textAlign='center';ctx.textBaseline='middle';let size=108;ctx.font=`900 ${size}px sans-serif`;while(size>40&&ctx.measureText(text).width>960){size-=4;ctx.font=`900 ${size}px sans-serif`}ctx.fillText(text,512,128);const tx=new T.CanvasTexture(cv);const m=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:tx,transparent:true,side:T.DoubleSide}));return m}
  cyl(world,night?0x54618c:theme===0?0xd4bf9d:0xb3ba89,0,-.32,0,5.4,.65);cyl(world,night?0x487d9e:theme===2?0x80bfc5:0x66a64e,0,.02,0,5.36,.16);
  // sculpted pebble edge
  for(let i=0;i<55;i++){const a=i/55*Math.PI*2;ball(world,night?0x7a87ae:0xe1d4b3,Math.cos(a)*5.1,.17,Math.sin(a)*5.1,.19,.13,.17)}
- function flower(x,z,size=1,color=C.pink){const g=group(x,.16,z);g.scale.setScalar(size);cyl(g,C.leaf,0,.48,0,.045,.85);const leaf=ball(g,C.green,.17,.35,0,.23,.065,.12);leaf.rotation.z=.5;for(let i=0;i<5;i++){const a=i*Math.PI*2/5;luminousPetal(ball(g,color,Math.cos(a)*.23,1+Math.sin(a)*.23,0,.19,.19,.095))}luminousPetal(ball(g,C.yellow,0,1,.1,.14,.14,.08),1.2);luminousBloom(g,[0,1,.06],1.6);moving.push(t=>{g.rotation.z=Math.sin(t*1.2+x)*.065});return g}
- function bush(x,z,s=1){const g=group(x,.15,z);for(let i=0;i<5;i++)ball(g,i%2?C.green:C.leaf,Math.sin(i*2.3)*.4,.35+i%2*.2,Math.cos(i*2.3)*.3,.52,.55,.5).name='felt-shrub';g.scale.setScalar(s);return g}
+ function flower(x,z,size=1,color=C.pink){const g=group(x,.16,z);g.scale.setScalar(size);cyl(g,C.leaf,0,.48,0,.045,.85);const leaf=ball(g,C.green,.17,.35,0,.23,.065,.12);leaf.rotation.z=.5;for(let i=0;i<5;i++){const a=i*Math.PI*2/5;luminousPetal(ball(g,color,Math.cos(a)*.23,1+Math.sin(a)*.23,0,.19,.19,.095))}luminousPetal(ball(g,C.yellow,0,1,.1,.14,.14,.08),1.2);luminousBloom(g,[0,1,.06],1.6);plantCap(g,0,1.02,.02,.58,.36,.52);plantCap(g,.16,.42,0,.26,.09,.16);moving.push(t=>{g.rotation.z=Math.sin(t*1.2+x)*.065});return g}
+ function bush(x,z,s=1){const g=group(x,.15,z);for(let i=0;i<5;i++)ball(g,i%2?C.green:C.leaf,Math.sin(i*2.3)*.4,.35+i%2*.2,Math.cos(i*2.3)*.3,.52,.55,.5).name='felt-shrub';plantCap(g,0,.82,0,.9,.32,.78);plantCap(g,.12,.5,.08,.55,.18,.48);g.scale.setScalar(s);return g}
  function rabbit(x,z,scale=1){return addRabbit(world,moving,mat,x,z,scale,theme)}
  function carrot(x,z){const g=group(x,.24,z);ball(g,C.orange,0,.45,0,.43,.47,.4);for(let i=0;i<3;i++){const leaf=ball(g,C.leaf,(i-1)*.17,.96,0,.13,.3,.11);leaf.rotation.z=(1-i)*.4}for(const s of [-1,1]){ball(g,C.white,s*.15,.52,.36,.1,.14,.04);ball(g,0x30312d,s*.15,.52,.397,.05,.075,.022)}ball(g,0x30312d,0,.3,.39,.08,.03,.02);moving.push(t=>{g.rotation.z=Math.sin(t*1.7+z)*.09});return g}
  function bee(x,y,z){const g=group(x,y,z);ball(g,C.yellow,0,0,0,.3,.29,.44);for(const k of [-.18,.12]){const stripe=cyl(g,0x554431,0,0,k,.3,.09);stripe.rotation.x=Math.PI/2}for(const s of [-1,1]){ball(g,0xfff8ed,s*.28,.2,0,.24,.08,.33);ball(g,0x302c29,s*.1,.07,.4,.045)}moving.push(t=>{g.position.y=y+Math.sin(t*2+x)*.23;g.position.x=x+Math.sin(t*.8)*.4;g.rotation.z=Math.sin(t*5)*.12})}
- function arch(){const g=group(0,.16,-1.8);mesh(new T.TorusGeometry(1.85,.24,20,56,Math.PI),C.leaf,g,0,1.55,0);for(const s of [-1,1])cyl(g,C.leaf,s*1.85,.8,0,.24,1.6);const l=label('STAYREAL',2.6,.55);l.position.set(0,2.65,.26);g.add(l);for(let i=0;i<15;i++){const a=i/14*Math.PI;const f=flower(Math.cos(a)*1.92,-1.63,.48,i%3===0?C.white:i%2?C.yellow:C.pink);f.children.slice(0,2).forEach(o=>{f.remove(o);o.geometry.dispose()});f.position.y=1.05+Math.sin(a)*1.95}}
+ function arch(){const g=group(0,.16,-1.8);mesh(new T.TorusGeometry(1.85,.24,20,56,Math.PI),C.leaf,g,0,1.55,0);for(const s of [-1,1])cyl(g,C.leaf,s*1.85,.8,0,.24,1.6);const l=label('STAYREAL',2.6,.55);l.position.set(0,2.65,.26);g.add(l);const colors=[C.pink,C.yellow,C.white,0xf3b7c8,0xffd56a];for(let i=0;i<13;i++){const a=(i+.5)/13*Math.PI,blossom=new T.Group(),color=colors[i%colors.length];blossom.position.set(Math.cos(a)*2.02,1.55+Math.sin(a)*2.02,.22);blossom.scale.setScalar(.55);g.add(blossom);for(let p=0;p<5;p++){const ang=p/5*Math.PI*2,petal=ball(blossom,color,Math.cos(ang)*.2,Math.sin(ang)*.2,.02,.085,.2,.045);petal.rotation.z=ang-Math.PI/2;luminousPetal(petal)}luminousPetal(ball(blossom,0xfff1b8,0,0,.06,.095,.095,.05),1.15);luminousBloom(blossom,[0,0,.04],1.1);plantCap(blossom,0,.02,.06,.64,.32,.56)}}
  function fence(x,z,n=5){const g=group(x,.12,z);for(let i=0;i<n;i++){box(g,C.cream,i*.43,.48,0,.14,.9,.13);const cap=mesh(new T.ConeGeometry(.105,.16,4),C.cream,g,i*.43,.99,0);cap.rotation.y=Math.PI/4}box(g,C.cream,(n-1)*.215,.35,0,n*.43,.09,.09);box(g,C.cream,(n-1)*.215,.7,0,n*.43,.09,.09)}
  function cloud(x,y,z){const g=group(x,y,z);feltClouds.push(g);for(let i=0;i<4;i++)ball(g,night?0xa0a5cc:C.white,(i-1.5)*.4,Math.sin(i)*.13,0,.45,.25,.25).name='felt-cloud';moving.push(t=>{g.position.x=x+Math.sin(t*.25+x)*.25})}
  function boat(x,z,large=false){const g=group(x,.42,z);const hull=ball(g,large?0x253e68:0xb76f3e,0,0,0,large?1.8:1.1,.35,large?.85:.48);box(g,C.cream,0,.35,0,large?3:1.75,.18,large?1.3:.75);box(g,large?C.cream:0xc99755,0,.65,-.08,large?2.15:1.1,.5,large?.85:.65);box(g,large?C.yellow:0xdaa343,0,.97,0,large?2.4:1.4,.12,large?1:.8);for(let i=0;i<5;i++)box(g,0x477a96,(i-2)*(large?.4:.21),.7,large?.46:.34, .13,.21,.7); // windows
  moving.push(t=>{g.position.y=.43+Math.sin(t*1.2+x)*.09;g.rotation.z=Math.sin(t*1.3)*.035;g.position.x=x+Math.sin(t*.3)*.23});return g}
  if(theme===0){
- arch();rabbit(.65,1.2,1.22);addBeeCarrot(world,moving,mat,-1.35,1.8);bee(-2.8,2.7,.3);bee(3,3,-1);
- for(const seed of addLivingMeadow(world,moving))flower(seed.x,seed.z,seed.size,seed.color);
+ arch();rabbit(.65,1.2,1.22);world.traverse(o=>{if(o.name==='garden-iris'){plantCap(o,-.18,2.12,.06,.72,.28,.62);plantCap(o,-.12,1.45,0,.14,.08,.12);plantCap(o,-.16,1.85,0,.16,.08,.12)}});addBeeCarrot(world,moving,mat,-1.35,1.8);bee(-2.8,2.7,.3);bee(3,3,-1);
+ const meadowFlowers=addLivingMeadow(world,moving);meadowSnow=meadowFlowers.setSnow;for(const seed of meadowFlowers)flower(seed.x,seed.z,seed.size,seed.color);
  for(let i=0;i<56;i++){const a=i*2.399;const r=3.4+(i%4)*.30;flower(Math.cos(a)*r,Math.sin(a)*r,.38+(i%4)*.10,[C.pink,C.yellow,C.white,0xdd7756][i%4])}
  for(const p of [[-3.5,-1],[3,-2],[0,-3.8],[-3,2.3]])bush(...p);
  fence(-1.4,-3.7,8);fence(2.5,-2.7,4);
  const path=mesh(new T.CylinderGeometry(1.4,1.4,.025,48),0xe5d4b0,world,.4,.125,1.1);path.scale.set(1,1,1.5);
- const sign=group(2.8,.2,1.4);box(sign,0xc59253,0,.65,0,1,.95,.12);box(sign,0x475447,0,.67,.075,.85,.78,.02);const l=label('BE HAPPY',.76,.21);l.position.set(0,.76,.1);sign.add(l);for(const s of [-1,1])box(sign,0xc59253,s*.37,.23,0,.09,.5,.1);
+ const sign=group(2.8,.2,1.4);box(sign,0xc59253,0,.65,0,1.5,.95,.12);box(sign,0x475447,0,.67,.075,1.32,.78,.02);const l=label('have a mojo day!',1.18,.32);l.position.set(0,.7,.1);sign.add(l);for(const s of [-1,1])box(sign,0xc59253,s*.52,.23,0,.09,.5,.1);
  const cart=group(3,.4,-.9);box(cart,0xb89261,0,.32,0,1.25,.55,.75);for(let i=0;i<3;i++)box(cart,0xcda774,0,.12+i*.18,.40,1.3,.13,.045);for(const s of [-1,1]){const w=cyl(cart,0x6e5138,s*.7,0,0,.27,.12);w.rotation.z=Math.PI/2;const hub=cyl(cart,0xb89261,s*.78,0,0,.12,.13);hub.rotation.z=Math.PI/2}box(cart,0xb89261,.96,.3,0,.8,.065,.09);for(let i=0;i<6;i++){const f=flower(2.6+i*.16,-.9+(i%2)*.18,.47,[C.yellow,C.pink,C.white][i%3]);f.position.y=.78}
  } else if(theme===1){
  // The seated bunny rests on a pier, matching the poster's river terrace.
@@ -246,7 +248,7 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
  rabbit(1.8,1.6,1);carrot(.3,2.4);boat(-1.9,.8);boat(2.7,-2.2);
  const bridge=group(-2,.2,-2.3);const arc=mesh(new T.TorusGeometry(1.1,.2,10,40,Math.PI),0xe9d5b3,bridge,0,0,0);arc.scale.set(1.7,1,1);for(let i=0;i<13;i++){const x=(i-6)*.28;const y=Math.sqrt(Math.max(0,1-(x/1.85)**2));box(bridge,C.cream,x,y+.33,.2,.075,.45,.08)}
  const pagoda=group(-3.6,.2,-2.8);for(let i=0;i<5;i++){const w=1.15-i*.15;box(pagoda,0xf1d3ab,0,.25+i*.48,0,w,.4,w);const roof=mesh(new T.ConeGeometry(w*.87,.32,4),0x967495,pagoda,0,.53+i*.48,0);roof.rotation.y=Math.PI/4}cyl(pagoda,C.yellow,0,2.9,0,.04,.55);
- for(let i=0;i<18;i++){const a=i*2.4,r=3.4+(i%3)*.35;const x=Math.cos(a)*r,z=Math.sin(a)*r;const leaf=cyl(world,C.green,x,.21,z,.43,.045);if(i%2===0)flower(x,z,.55,C.pink);moving.push(t=>{leaf.position.y=.22+Math.sin(t+i)*.025})}
+ for(let i=0;i<18;i++){const a=i*2.4,r=3.4+(i%3)*.35;const x=Math.cos(a)*r,z=Math.sin(a)*r;const leaf=cyl(world,C.green,x,.21,z,.43,.045);plantCap(leaf,0,.08,0,.42,.045,.42);if(i%2===0)flower(x,z,.55,C.pink);moving.push(t=>{leaf.position.y=.22+Math.sin(t+i)*.025})}
  const balloon=group(3.1,4.3,-1.8);ball(balloon,C.yellow,0,.4,0,.63,.84,.63);for(const s of [-1,1])cyl(balloon,0xb39756,s*.3,-.5,0,.018,.75);box(balloon,0xcf9345,0,-.95,0,.62,.4,.5);const l=label('DREAM',.85,.25);l.position.set(0,.4,.61);balloon.add(l);moving.push(t=>{balloon.position.y=4.3+Math.sin(t*.7)*.22;balloon.rotation.z=Math.sin(t*.5)*.08});
  for(const p of [[-4,1],[3.8,1],[.3,-4]])bush(...p,.7);
  }

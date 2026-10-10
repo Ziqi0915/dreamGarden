@@ -48,17 +48,18 @@ export function addLivingMeadow(world,moving){
     if(!meadowIsOpen(x,z)||flowers.some(f=>Math.hypot(x-f.x,z-f.z)<.40))continue;
     flowers.push({x,z,size:.19+random()*.24,color:[0xfff7df,0xf5c84e,0xeb8da3,0xc4a0d8][flowers.length%4]});
   }
-  const time={value:0};
-  const material=new T.MeshPhysicalMaterial({color:0xffffff,vertexColors:true,roughness:.44,metalness:0,clearcoat:.40,clearcoatRoughness:.28});
+  const time={value:0},snowAmount={value:0};
+  const material=new T.MeshPhysicalMaterial({color:0xffffff,vertexColors:true,roughness:.72,metalness:0,clearcoat:.40,clearcoatRoughness:.28});
   material.onBeforeCompile=shader=>{
-    shader.uniforms.meadowTime=time;
+    shader.uniforms.meadowTime=time;shader.uniforms.meadowSnow=snowAmount;
     shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nuniform float meadowTime;')
       .replace('#include <begin_vertex>',`#include <begin_vertex>
         float phase=instanceMatrix[3].x*.8+instanceMatrix[3].z*.65;
         transformed.x+=sin(meadowTime*1.3+phase)*.09*position.y*position.y;
         transformed.z+=cos(meadowTime*.9+phase)*.035*position.y*position.y;`);
+    shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.975,0.985,1.0),meadowSnow);');
   };
-  material.customProgramCacheKey=()=> 'living-meadow-wind-v1';
+  material.customProgramCacheKey=()=> 'living-meadow-wind-snow-v1';
   const grass=new T.InstancedMesh(bladeGeometry(),material,tufts.length*6);
   grass.name='fresh-layered-grass';grass.receiveShadow=true;grass.frustumCulled=false;world.add(grass);
   const dummy=new T.Object3D(),tint=new T.Color(),dewSeeds=[];
@@ -75,7 +76,9 @@ export function addLivingMeadow(world,moving){
   grass.instanceMatrix.needsUpdate=true;grass.instanceColor.needsUpdate=true;
   const dewMaterial=new T.MeshPhysicalMaterial({color:0xd3ffe8,roughness:.06,metalness:.05,clearcoat:1,clearcoatRoughness:.02,transparent:true,opacity:.76,depthWrite:false});
   const dew=new T.InstancedMesh(new T.SphereGeometry(1,10,8),dewMaterial,dewSeeds.length);dew.name='meadow-dewdrops';dew.frustumCulled=false;world.add(dew);
-  const highlights=new T.InstancedMesh(new T.SphereGeometry(1,6,4),new T.MeshBasicMaterial({color:0xf0fff6}),dewSeeds.length);highlights.name='dew-highlights';highlights.frustumCulled=false;world.add(highlights);
+  const highlights=new T.InstancedMesh(new T.SphereGeometry(1,6,4),new T.MeshBasicMaterial({color:0xf0fff6,transparent:true}),dewSeeds.length);highlights.name='dew-highlights';highlights.frustumCulled=false;world.add(highlights);
+  const caps=new T.InstancedMesh(new T.SphereGeometry(1,12,8),new T.MeshStandardMaterial({color:0xf7fbff,roughness:1}),tufts.length);caps.name='meadow-snow';caps.frustumCulled=false;caps.receiveShadow=true;caps.visible=false;world.add(caps);
+  const capBase=tufts.map(tuft=>{const cap={x:tuft.x,y:.1+tuft.height*.72,z:tuft.z,sx:.12+tuft.height*.55,sy:.05+tuft.height*.14,sz:.1+tuft.height*.48,angle:tuft.angle};dummy.position.set(cap.x,cap.y,cap.z);dummy.rotation.set(-.35,cap.angle,0);dummy.scale.set(cap.sx,cap.sy,cap.sz);dummy.updateMatrix();caps.setMatrixAt(tufts.indexOf(tuft),dummy.matrix);return cap});caps.instanceMatrix.needsUpdate=true;
   const point=new T.Vector3();
   function animate(t){
     time.value=t;
@@ -88,5 +91,6 @@ export function addLivingMeadow(world,moving){
     dew.instanceMatrix.needsUpdate=true;highlights.instanceMatrix.needsUpdate=true;
   }
   animate(0);moving.push(animate);
+  flowers.setSnow=c=>{const k=Math.max(0,Math.min(1,c));snowAmount.value=k;dewMaterial.opacity=.76*(1-k);highlights.material.opacity=1-k;caps.visible=k>.02;if(!caps.visible)return;capBase.forEach((cap,i)=>{dummy.position.set(cap.x,cap.y,cap.z);dummy.rotation.set(-.35,cap.angle,0);dummy.scale.set(cap.sx*k,cap.sy*k,cap.sz*k);dummy.updateMatrix();caps.setMatrixAt(i,dummy.matrix)});caps.instanceMatrix.needsUpdate=true};
   return flowers;
 }
