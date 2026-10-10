@@ -1,6 +1,7 @@
 import * as T from 'three';
+import {addRabbitHead} from './rabbit-head';
 
-// Shared sculpted characters. Front-facing details follow the poster silhouettes.
+// Shared sculpted characters with video-inspired rounded toy proportions.
 function sculpt(parent, mat) {
   function mesh(geometry, color, x=0, y=0, z=0, p=parent) {
     const m=new T.Mesh(geometry,mat(color));m.position.set(x,y,z);
@@ -24,22 +25,31 @@ function sculpt(parent, mat) {
 const P={white:0xfffcf3,ink:0x201c1b,blush:0xe8a0bb,red:0xa63f36,denim:0x355a80,cuff:0x7d9baf,thread:0xc8aa6d,leaf:0x428847,orange:0xf48935};
 
 export function addRabbit(world,moving,mat,x,z,scale=1,theme=0) {
-  const g=new T.Group();g.name='poster-rabbit';g.position.set(x,.2,z);g.scale.setScalar(scale);world.add(g);
+  const g=new T.Group();g.name='video-reference-rabbit';g.position.set(x,.2,z);g.scale.setScalar(scale);world.add(g);
   const {oval,stroke,patch,rounded,mesh}=sculpt(g,mat);
   const sitting=theme!==0,lake=theme===2;
   const body=new T.Group();g.add(body);
-  oval(lake?0x73a4be:P.red,0,.85,0,.49,.52,.30,body);
-  if(!lake) {
-    for(const y of [.64,.83,1.02,1.19]) {
-      const band=mesh(new T.CylinderGeometry(.47,.47,.085,40),P.white,0,y,0,body);band.scale.z=.63;
+  // UV stripes follow the rounded shirt and sleeves, with no detached bands.
+  function stripedFabric(bands) {
+    const canvas=document.createElement('canvas');canvas.width=16;canvas.height=512;
+    const ctx=canvas.getContext('2d');
+    for(let row=0;row<512;row++) {
+      const y=(Math.cos(Math.PI*(row+.5)/512)+1)/2;
+      ctx.fillStyle=Math.floor(y*bands)%2?'#fff9ed':'#b74035';ctx.fillRect(0,row,16,1);
     }
+    const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;
+    const fabric=mat(P.white).clone();fabric.map=texture;fabric.roughness=.88;return fabric;
   }
+  const shirtFabric=!lake?stripedFabric(8):null;
+  const sleeveFabric=!lake?stripedFabric(6):null;
+  const torso=oval(lake?0x73a4be:P.white,0,.85,0,.49,.52,.33,body);
+  if(shirtFabric)torso.material=shirtFabric;
   // Sleeve segments are attached to shoulder pivots so waving stays coherent.
   const arms=[];
   for(const side of [-1,1]) {
     const arm=new T.Group();arm.position.set(side*.46,1.08,0);body.add(arm);arm.rotation.z=side*.54;arms.push(arm);
-    oval(lake?0x73a4be:P.red,0,-.24,0,.18,.39,.18,arm);
-    if(!lake)for(const y of [-.1,-.29,-.45])mesh(new T.CylinderGeometry(.183,.183,.10,24),P.white,0,y,0,arm);
+    const sleeve=oval(lake?0x73a4be:P.white,0,-.24,0,.19,.35,.20,arm);
+    if(sleeveFabric)sleeve.material=sleeveFabric;
     oval(P.white,0,-.57,.015,.175,.20,.16,arm);
   }
   if(lake) {
@@ -54,7 +64,10 @@ export function addRabbit(world,moving,mat,x,z,scale=1,theme=0) {
   } else {
     // Denim bib, blue shoulder straps, brass buttons, stitched front pocket.
     oval(P.denim,0,.59,.02,.49,.40,.32,body);
-    patch(rounded(-.36,.64,.72,.49,.055),P.denim,.27,.075,.03,body);
+    const bib=patch(rounded(-.36,.64,.72,.49,.07),P.denim,.27,.075,.035,body);
+    const vertices=bib.geometry.attributes.position;
+    for(let i=0;i<vertices.count;i++)vertices.setZ(i,vertices.getZ(i)-.35*vertices.getX(i)**2);
+    bib.geometry.computeVertexNormals();
     for(const side of [-1,1]) {
       stroke(P.denim,[[side*.31,1.23,.15],[side*.30,1.08,.31],[side*.27,.98,.39]],.06,body);
       oval(P.thread,side*.27,.99,.417,.053,.053,.018,body);
@@ -68,7 +81,7 @@ export function addRabbit(world,moving,mat,x,z,scale=1,theme=0) {
     const leg=new T.Group();leg.position.set(side*.26,.47,0);body.add(leg);
     if(sitting)leg.rotation.x=-.9;
     oval(lake?0x6598b3:P.denim,0,-.18,.015,.245,.32,.25,leg);
-    oval(lake?0x87b2c8:P.cuff,0,-.35,.04,.25,.09,.255,leg);
+    oval(lake?0x87b2c8:0x9eb0bc,0,-.35,.04,.255,.09,.26,leg);
     oval(lake?0x343536:P.white,0,-.45,.14,.285,.10,.40,leg);
     oval(lake?0x343536:P.red,0,-.40,.18,.267,.14,.36,leg);
     if(!lake) {
@@ -77,31 +90,11 @@ export function addRabbit(world,moving,mat,x,z,scale=1,theme=0) {
     }
   }
   oval(P.white,0,.61,-.33,.19,.18,.16,body);
-  // One continuous silhouette avoids seams between the cheeks and ears.
-  const head=new T.Shape();head.moveTo(-.78,1.49);
-  head.bezierCurveTo(-1.01,1.73,-.98,2.12,-.72,2.34);
-  head.lineTo(-.72,2.90);head.bezierCurveTo(-.74,3.30,-.27,3.40,-.19,3.01);
-  head.lineTo(-.10,2.55);head.quadraticCurveTo(0,2.59,.09,2.56);
-  head.lineTo(.25,3.04);head.bezierCurveTo(.35,3.39,.81,3.27,.73,2.91);
-  head.lineTo(.58,2.33);head.bezierCurveTo(.94,2.18,1.02,1.75,.82,1.51);
-  head.bezierCurveTo(.54,1.25,-.51,1.22,-.78,1.49);head.closePath();
-  patch(head,P.white,-.22,.59,.09);
-  // Flat graphic face, wide cheeks and the reference's double-lobed smile.
-  for(const side of [-1,1]) {
-    const eye=oval(P.ink,side*.36,1.87,.477,.085,.156,.031);eye.rotation.z=-side*.11;
-    oval(P.blush,side*.64,1.61,.472,.135,.065,.022);
-  }
-  oval(P.ink,0,1.73,.488,.066,.062,.026);
-  stroke(P.ink,[[-.19,1.60,.49],[-.13,1.53,.49],[-.05,1.54,.49],[0,1.57,.49],[.07,1.53,.49],[.14,1.54,.49],[.20,1.60,.49]],.032);
-  // Carrot hair clip: tapered orange root, engraved marks, three green leaves.
-  const clip=new T.Group();clip.position.set(-.48,2.51,.48);clip.rotation.z=-.31;g.add(clip);
-  const root=new T.Shape();root.moveTo(-.24,-.095);root.quadraticCurveTo(-.34,0,-.24,.09);root.lineTo(.09,.13);root.quadraticCurveTo(.20,0,.08,-.13);root.closePath();patch(root,P.orange,0,.035,.025,clip);
-  for(let i=0;i<3;i++){const leaf=oval(P.leaf,.14+i*.055,.06+(i%2)*.08,.02,.08,.15,.045,clip);leaf.rotation.z=-.5+i*.55}
-  for(let i=0;i<2;i++)stroke(0xdc702c,[[-.16+i*.12,-.025,.07],[-.12+i*.12,.052,.07]],.014,clip);
+  const head=addRabbitHead(g,mat);
   // Garden iris and lake lotus leaf umbrella are held by the left hand.
   let plant=null;
   if(theme===0) {
-    plant=new T.Group();plant.position.set(-1.03,.72,.12);plant.rotation.z=.1;g.add(plant);
+    plant=new T.Group();plant.position.set(-.84,.58,.12);plant.rotation.z=.1;g.add(plant);
     stroke(P.leaf,[[0,0,0],[-.10,.7,0],[-.15,1.55,0],[-.19,2.1,0]],.046,plant);
     const leaf=oval(P.leaf,-.19,.84,-.02,.115,.54,.045,plant);leaf.rotation.z=.38;
     for(let i=0;i<6;i++) {const angle=i*Math.PI/3;const p=oval(i%2?0x6f579b:0x8370ad,-.18+Math.cos(angle)*.33,2.10+Math.sin(angle)*.31,.02,.28,.38,.10,plant);p.rotation.z=angle-Math.PI/2;if(i<3)oval(0xf4cf5b,-.18+Math.cos(angle)*.16,2.10+Math.sin(angle)*.16,.13,.10,.13,.025,plant)}
@@ -113,7 +106,7 @@ export function addRabbit(world,moving,mat,x,z,scale=1,theme=0) {
     oval(0xe9f8d9,.2,2.67,.12,.075,.035,.07,plant);
   }
   const baseY=sitting?.35:.2;
-  moving.push(t=>{g.position.y=baseY+Math.sin(t*1.7)*.026;g.rotation.y=.32+Math.sin(t*.65)*.045;arms[1].rotation.z=.52+Math.sin(t*1.6)*.045;if(plant)plant.rotation.z=.08+Math.sin(t*.8)*.025});
+  moving.push(t=>{g.position.y=baseY+Math.sin(t*1.7)*.026;g.rotation.y=.32+Math.sin(t*.65)*.045;arms[1].rotation.z=.52+Math.sin(t*1.6)*.045;head.rotation.z=Math.sin(t*.72)*.018;if(plant)plant.rotation.z=.08+Math.sin(t*.8)*.025});
   return g;
 }
 
