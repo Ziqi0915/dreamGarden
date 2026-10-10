@@ -1,7 +1,7 @@
 import * as T from 'three';
 import { MarchingCubes } from 'three/addons/objects/MarchingCubes.js';
 
-const HEAD = { x: .80, y: .66, z: .60, cy: 1.98 };
+const HEAD = { x: .80, y: .70, z: .60, cy: 1.98 };
 const WHITE = 0xfffcf3;
 const INK = 0x211d1b;
 let headTemplate;
@@ -20,7 +20,11 @@ function smoothUnion(a, b, blend) {
 }
 
 function sculptureDistance(x, y, z) {
-  let d = ellipsoidDistance(x, y - HEAD.cy, z, HEAD.x, HEAD.y, HEAD.z);
+  const dy = y - HEAD.cy;
+  // The physical mascot has full lower cheeks and a soft, flatter chin.
+  // Keep the upper head elliptical and broaden only the lower half.
+  const shapedY = dy < 0 ? -HEAD.y * (Math.abs(dy) / HEAD.y) ** 1.2 : dy;
+  let d = ellipsoidDistance(x, shapedY, z, HEAD.x, HEAD.y, HEAD.z);
   for (const side of [-1, 1]) {
     const angle = -side * .18;
     const dx = x - side * .31, dy = y - 2.79;
@@ -77,7 +81,7 @@ function headGeometry(material) {
 }
 
 function frontSurface(x, y) {
-  const q = 1 - (x / HEAD.x) ** 2 - ((y - HEAD.cy) / HEAD.y) ** 2;
+  const q = 1 - (x / HEAD.x) ** 2 - Math.abs((y - HEAD.cy) / HEAD.y) ** (y < HEAD.cy ? 2.4 : 2);
   return HEAD.z * Math.sqrt(Math.max(q, .001));
 }
 

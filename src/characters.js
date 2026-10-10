@@ -1,8 +1,10 @@
 import * as T from 'three';
+import {TessellateModifier} from 'three/addons/modifiers/TessellateModifier.js';
+import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {addRabbitHead} from './rabbit-head';
 import {finishTextile} from './textiles';
 
-// Shared sculpted characters with video-inspired rounded toy proportions.
+// Shared sculpted characters with physical mascot proportions.
 function sculpt(parent, mat) {
   function mesh(geometry, color, x=0, y=0, z=0, p=parent) {
     const m=new T.Mesh(geometry,mat(color));m.position.set(x,y,z);
@@ -29,69 +31,96 @@ export function addRabbit(world,moving,mat,x,z,scale=1,theme=0) {
   const g=new T.Group();g.name='video-reference-rabbit';g.position.set(x,.2,z);g.scale.setScalar(scale);world.add(g);
   const {oval,stroke,patch,rounded,mesh}=sculpt(g,mat);
   const sitting=theme!==0,lake=theme===2;
-  const body=new T.Group();body.scale.set(.93,.80,.96);g.add(body);
+  const seatBottom=lake?.43:.40;
+  const body=new T.Group();g.add(body);
   // UV stripes follow the rounded shirt and sleeves, with no detached bands.
   function stripedFabric(bands) {
     const canvas=document.createElement('canvas');canvas.width=16;canvas.height=512;
     const ctx=canvas.getContext('2d');
     for(let row=0;row<512;row++) {
       const y=(Math.cos(Math.PI*(row+.5)/512)+1)/2;
-      ctx.fillStyle=Math.floor(y*bands)%2?'#fff9ed':'#b74035';ctx.fillRect(0,row,16,1);
+      // A red top band meets the head; a white polar band looked like a neck.
+      ctx.fillStyle=Math.floor(y*bands)%2?'#b74035':'#fff9ed';ctx.fillRect(0,row,16,1);
     }
     const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;
     const fabric=mat(P.white).clone();fabric.map=texture;fabric.roughness=.88;if(theme===0)finishTextile(fabric,'canvas');return fabric;
   }
-  const shirtFabric=!lake?stripedFabric(8):null;
+  const shirtFabric=!lake?stripedFabric(6):null;
   const sleeveFabric=!lake?stripedFabric(6):null;
-  const torso=oval(lake?0x73a4be:P.white,0,.85,0,.49,.52,.33,body);
+  const torso=oval(lake?0x73a4be:P.white,0,.96,0,.55,.53,.35,body);
   if(shirtFabric)torso.material=shirtFabric;
   // Sleeve segments are attached to shoulder pivots so waving stays coherent.
   const arms=[];
   for(const side of [-1,1]) {
-    const arm=new T.Group();arm.position.set(side*.46,1.08,0);body.add(arm);arm.rotation.z=side*.54;arms.push(arm);
-    const sleeve=oval(lake?0x73a4be:P.white,0,-.24,0,.19,.35,.20,arm);
+    const arm=new T.Group();arm.position.set(side*.47,1.24,0);body.add(arm);arm.rotation.z=side*.50;arms.push(arm);
+    const sleeve=oval(lake?0x73a4be:P.white,0,-.21,0,.19,.30,.20,arm);
     if(sleeveFabric)sleeve.material=sleeveFabric;
-    oval(P.white,0,-.57,.015,.175,.20,.16,arm).name='plush-paw';
+    oval(P.white,0,-.53,.015,.175,.19,.16,arm).name='plush-paw';
   }
   if(lake) {
-    patch(rounded(-.46,.45,.92,.73,.1),0x73a4be,.19,.04,.04,body);
+    patch(rounded(-.46,.45,.92,.78,.1),0x73a4be,.19,.035,.025,body);
     for(const side of [-1,1]) {
-      const lapel=new T.Shape();lapel.moveTo(side*.06,1.24);lapel.lineTo(side*.35,1.19);lapel.lineTo(side*.19,.92);lapel.closePath();patch(lapel,0x94bbcf,.31,.025,.007,body);
+      const lapel=new T.Shape();lapel.moveTo(side*.06,1.38);lapel.lineTo(side*.35,1.27);lapel.lineTo(side*.19,1.03);lapel.closePath();patch(lapel,0x94bbcf,.30,.025,.007,body);
     }
     stroke(0x527d98,[[0,.46,.35],[0,1.05,.35]],.018,body);
     patch(rounded(.16,.73,.22,.19,.035),0x396788,.34,.02,.008,body);
     const emblem=mesh(new T.TorusGeometry(.10,.016,6,24),P.white,-.22,.84,.35,body);emblem.rotation.z=.4;
     stroke(P.white,[[-.27,.76,.35],[-.18,.92,.35]],.013,body);
   } else {
-    // Denim bib, blue shoulder straps, brass buttons, stitched front pocket.
-    oval(P.denim,0,.59,.02,.49,.40,.32,body);
-    const bib=patch(rounded(-.36,.64,.72,.49,.07),P.denim,.27,.075,.035,body);
-    const vertices=bib.geometry.attributes.position;
-    for(let i=0;i<vertices.count;i++)vertices.setZ(i,vertices.getZ(i)-.35*vertices.getX(i)**2);
-    bib.geometry.computeVertexNormals();
-    for(const side of [-1,1]) {
-      stroke(P.denim,[[side*.31,1.23,.15],[side*.30,1.08,.31],[side*.27,.98,.39]],.06,body);
-      oval(P.thread,side*.27,.99,.417,.053,.053,.018,body);
-      for(let i=0;i<5;i++)stroke(P.thread,[[side*.31,1.17-i*.038,.38],[side*.31,1.154-i*.038,.38]],.007,body);
+    // A shallow pelvis leaves two distinct legs, rather than a hanging belly.
+    oval(P.denim,0,.63,.015,.47,.23,.31,body);
+    function bodyFront(x,y) {
+      const shirt=.35*Math.sqrt(Math.max(0,1-(x/.55)**2-((y-.96)/.53)**2));
+      const trousers=.015+.31*Math.sqrt(Math.max(0,1-(x/.47)**2-((y-.63)/.23)**2));
+      return Math.max(shirt,trousers);
     }
-    const pocket=new T.Shape();pocket.moveTo(-.22,.87);pocket.lineTo(.22,.87);pocket.lineTo(.20,.69);pocket.quadraticCurveTo(0,.55,-.20,.69);pocket.closePath();patch(pocket,0x2e5075,.376,.018,.009,body);
-    for(let i=0;i<7;i++)stroke(P.thread,[[-.19+i*.058,.849,.41],[-.163+i*.058,.849,.41]],.007,body);
-    for(const side of [-1,1])for(let i=0;i<4;i++)stroke(P.thread,[[side*(.18-i*.018),.79-i*.04,.408],[side*(.175-i*.018),.769-i*.04,.408]],.007,body);
+    function fittedPatch(shape,color,offset,depth,bevel) {
+      const object=patch(shape,color,0,depth,bevel,body);
+      // Subdivide before bending: otherwise a broad front triangle cuts
+      // through the round shirt instead of following its curved surface.
+      const geometry=new TessellateModifier(.06,6).modify(object.geometry);
+      object.geometry.dispose();object.geometry=geometry;
+      const vertices=object.geometry.attributes.position;
+      for(let i=0;i<vertices.count;i++)vertices.setZ(i,vertices.getZ(i)+bodyFront(vertices.getX(i),vertices.getY(i))+offset);
+      object.geometry.deleteAttribute('normal');
+      const smooth=mergeVertices(object.geometry);object.geometry.dispose();object.geometry=smooth;
+      object.geometry.computeVertexNormals();
+      return object;
+    }
+    // Thin cloth follows the torso, including the pocket and its stitches.
+    fittedPatch(rounded(-.38,.65,.76,.52,.07),P.denim,.020,.035,.012);
+    for(const side of [-1,1]) {
+      stroke(P.denim,[[side*.34,1.34,-.14],[side*.34,1.39,.02],[side*.32,1.29,.19],[side*.29,1.08,bodyFront(side*.29,1.08)+.045]],.05,body);
+      oval(P.thread,side*.29,1.08,bodyFront(side*.29,1.08)+.092,.046,.046,.014,body);
+      for(let i=0;i<4;i++) {
+        const y=1.24-i*.036;
+        stroke(P.thread,[[side*.31,y,bodyFront(side*.31,y)+.09],[side*.31,y-.015,bodyFront(side*.31,y-.015)+.09]],.006,body);
+      }
+    }
+    const pocket=new T.Shape();pocket.moveTo(-.22,.91);pocket.lineTo(.22,.91);pocket.lineTo(.20,.75);pocket.quadraticCurveTo(0,.61,-.20,.75);pocket.closePath();fittedPatch(pocket,0x2e5075,.074,.012,.006);
+    function stitch(x0,y0,x1,y1) {stroke(P.thread,[[x0,y0,bodyFront(x0,y0)+.095],[x1,y1,bodyFront(x1,y1)+.095]],.006,body)}
+    for(let i=0;i<7;i++)stitch(-.19+i*.058,.889,-.163+i*.058,.889);
+    for(const side of [-1,1])for(let i=0;i<4;i++)stitch(side*(.18-i*.018),.83-i*.035,side*(.175-i*.018),.813-i*.035);
   }
   for(const side of [-1,1]) {
-    const leg=new T.Group();leg.position.set(side*.26,.47,0);body.add(leg);
-    if(sitting)leg.rotation.x=-.9;
-    oval(lake?0x6598b3:P.denim,0,-.18,.015,.245,.32,.25,leg);
-    oval(lake?0x87b2c8:0x9eb0bc,0,-.35,.04,.255,.09,.26,leg);
-    oval(lake?0x343536:P.white,0,-.45,.14,.285,.10,.40,leg);
-    oval(lake?0x343536:P.red,0,-.40,.18,.267,.14,.36,leg);
+    const leg=new T.Group();leg.position.set(side*.245,sitting?seatBottom+.225:.48,0);body.add(leg);
+    // Extend seated legs horizontally, with their soles facing forward.
+    // Their underside and the pelvis share the same support height.
+    if(sitting)leg.rotation.x=-Math.PI/2;
+    oval(lake?0x6598b3:P.denim,0,-.14,.015,.225,.29,.24,leg);
+    oval(lake?0x87b2c8:0x9eb0bc,0,-.36,.04,.23,.045,.24,leg);
+    oval(lake?0x343536:P.white,0,-.47,.13,.265,.065,.35,leg);
+    oval(lake?0x343536:P.red,0,-.40,.16,.25,.125,.31,leg);
     if(!lake) {
       oval(P.white,0,-.31,.23,.14,.06,.16,leg);
       for(let i=0;i<2;i++)stroke(P.white,[[-.115,-.30+i*.03,.23],[0,-.285+i*.03,.29],[.115,-.30+i*.03,.23]],.016,leg);
     }
   }
   oval(P.white,0,.61,-.33,.19,.18,.16,body).name='plush-tail';
-  const head=addRabbitHead(g,mat);head.scale.set(1.055,1,1.035);head.position.y=-.27;
+  // The chin sits directly on the shirt. Animate around this joint so a head
+  // tilt cannot pull the whole sculpture away from the shoulders.
+  const headPivot=new T.Group();headPivot.position.y=1.36;g.add(headPivot);
+  const head=addRabbitHead(headPivot,mat);head.scale.set(1.055,1,1.035);head.position.y=-1.34;
   // Garden iris and lake lotus leaf umbrella are held by the left hand.
   let plant=null;
   if(theme===0) {
@@ -106,8 +135,9 @@ export function addRabbit(world,moving,mat,x,z,scale=1,theme=0) {
     for(let i=0;i<7;i++) {const a=i*Math.PI*2/7;stroke(0x529636,[[-.1,2.64,0],[-.1+Math.cos(a)*.42,2.65,Math.sin(a)*.31],[-.1+Math.cos(a)*.85,2.59,Math.sin(a)*.57]],.014,plant)}
     oval(0xe9f8d9,.2,2.67,.12,.075,.035,.07,plant);
   }
-  const baseY=sitting?.40:.2;
-  moving.push(t=>{g.position.y=baseY+Math.sin(t*1.7)*.026;g.rotation.y=.32+Math.sin(t*.65)*.045;arms[1].rotation.z=.52+Math.sin(t*1.6)*.045;head.rotation.z=Math.sin(t*.72)*.018;if(plant)plant.rotation.z=.08+Math.sin(t*.8)*.025});
+  const baseY=sitting?.565-seatBottom*scale:.2;g.position.y=baseY;
+  // Keep feet/the seated pelvis planted while the head, arms and prop move.
+  moving.push(t=>{g.rotation.y=.32+Math.sin(t*.65)*.045;arms[1].rotation.z=.50+Math.sin(t*1.6)*.045;headPivot.rotation.z=Math.sin(t*.72)*.018;if(plant)plant.rotation.z=.08+Math.sin(t*.8)*.025});
   return g;
 }
 
