@@ -1,5 +1,6 @@
 import * as T from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {addRabbit,addBeeCarrot} from './characters';
 const C={green:0x6d995e,leaf:0x4e8452,yellow:0xf5c84e,pink:0xeb8da3,cream:0xfff7df,white:0xfffcf0,blue:0x496982,orange:0xee8545};
 export function createWorld(el,theme,onReady){
  const scene=new T.Scene(); const night=theme===1;
@@ -20,7 +21,7 @@ export function createWorld(el,theme,onReady){
  for(let i=0;i<55;i++){const a=i/55*Math.PI*2;ball(world,night?0x7a87ae:0xe1d4b3,Math.cos(a)*5.1,.17,Math.sin(a)*5.1,.19,.13,.17)}
  function flower(x,z,size=1,color=C.pink){const g=group(x,.16,z);g.scale.setScalar(size);cyl(g,C.leaf,0,.48,0,.045,.85);const leaf=ball(g,C.green,.17,.35,0,.23,.065,.12);leaf.rotation.z=.5;for(let i=0;i<5;i++){const a=i*Math.PI*2/5;ball(g,color,Math.cos(a)*.23,1+Math.sin(a)*.23,0,.19,.19,.095)}ball(g,C.yellow,0,1,.1,.14,.14,.08);moving.push(t=>{g.rotation.z=Math.sin(t*1.2+x)*.065});return g}
  function bush(x,z,s=1){const g=group(x,.15,z);for(let i=0;i<5;i++)ball(g,i%2?C.green:C.leaf,Math.sin(i*2.3)*.4,.35+i%2*.2,Math.cos(i*2.3)*.3,.52,.55,.5);g.scale.setScalar(s);return g}
- function rabbit(x,z,scale=1){const g=group(x,.3,z);g.scale.setScalar(scale);ball(g,C.blue,0,.68,0,.49,.62,.35);ball(g,C.white,0,1.65,.02,.71,.62,.48);for(const side of [-1,1]){const ear=ball(g,C.white,side*.32,2.4,0,.21,.65,.18);ear.rotation.z=-side*.15;ball(g,0xf4d2cd,side*.32,2.42,.155,.09,.43,.025);ball(g,0x302c29,side*.27,1.7,.46,.075,.115,.045);ball(g,C.pink,side*.44,1.47,.43,.12,.06,.035);ball(g,C.white,side*.62,.86,0,.18,.36,.18);ball(g,0xa24e37,side*.28,.16,.19,.26,.16,.4)}ball(g,0x302c29,0,1.5,.51,.065,.05,.03);const smile=new T.Mesh(new T.TorusGeometry(.12,.027,8,24,Math.PI),mat(0x302c29));smile.rotation.z=Math.PI;smile.position.set(0,1.43,.505);g.add(smile);box(g,C.cream,0,.76,.347,.36,.28,.025);for(const s of [-1,1])box(g,C.yellow,s*.27,1.04,.29,.075,.4,.055);ball(g,C.orange,-.26,2.03,.38,.2,.1,.1);ball(g,C.green,-.43,2.08,.36,.1,.15,.08);moving.push(t=>{g.position.y=.3+Math.sin(t*1.8)*.045;g.rotation.y=Math.sin(t*.65)*.08});return g}
+ function rabbit(x,z,scale=1){return addRabbit(world,moving,mat,x,z,scale,theme)}
  function carrot(x,z){const g=group(x,.24,z);ball(g,C.orange,0,.45,0,.43,.47,.4);for(let i=0;i<3;i++){const leaf=ball(g,C.leaf,(i-1)*.17,.96,0,.13,.3,.11);leaf.rotation.z=(1-i)*.4}for(const s of [-1,1]){ball(g,C.white,s*.15,.52,.36,.1,.14,.04);ball(g,0x30312d,s*.15,.52,.397,.05,.075,.022)}ball(g,0x30312d,0,.3,.39,.08,.03,.02);moving.push(t=>{g.rotation.z=Math.sin(t*1.7+z)*.09});return g}
  function bee(x,y,z){const g=group(x,y,z);ball(g,C.yellow,0,0,0,.3,.29,.44);for(const k of [-.18,.12]){const stripe=cyl(g,0x554431,0,0,k,.3,.09);stripe.rotation.x=Math.PI/2}for(const s of [-1,1]){ball(g,0xfff8ed,s*.28,.2,0,.24,.08,.33);ball(g,0x302c29,s*.1,.07,.4,.045)}moving.push(t=>{g.position.y=y+Math.sin(t*2+x)*.23;g.position.x=x+Math.sin(t*.8)*.4;g.rotation.z=Math.sin(t*5)*.12})}
  function arch(){const g=group(-2.2,.16,-1.8);const a=mesh(new T.TorusGeometry(1.35,.22,16,48,Math.PI),C.leaf,g,0,1.55,0);for(const s of [-1,1])cyl(g,C.leaf,s*1.35,.8,0,.22,1.6);const l=label('STAYREAL',2.4,.6);l.position.set(0,2.2,.26);g.add(l);for(let i=0;i<9;i++){const a=i/8*Math.PI;const f=flower(-2.2+Math.cos(a)*1.5,-1.8,.45,i%2?C.yellow:C.pink);f.position.y=1.55+Math.sin(a)*1.5}}
@@ -29,7 +30,7 @@ export function createWorld(el,theme,onReady){
  function boat(x,z,large=false){const g=group(x,.42,z);const hull=ball(g,large?0x253e68:0xb76f3e,0,0,0,large?1.8:1.1,.35,large?.85:.48);box(g,C.cream,0,.35,0,large?3:1.75,.18,large?1.3:.75);box(g,large?C.cream:0xc99755,0,.65,-.08,large?2.15:1.1,.5,large?.85:.65);box(g,large?C.yellow:0xdaa343,0,.97,0,large?2.4:1.4,.12,large?1:.8);for(let i=0;i<5;i++)box(g,0x477a96,(i-2)*(large?.4:.21),.7,large?.46:.34, .13,.21,.7); // windows
  moving.push(t=>{g.position.y=.43+Math.sin(t*1.2+x)*.09;g.rotation.z=Math.sin(t*1.3)*.035;g.position.x=x+Math.sin(t*.3)*.23});return g}
  if(theme===0){
- arch();rabbit(.7,1.3,1.12);carrot(2.4,1.5);bee(-.8,2.7,1.3);bee(3,2,-1);
+ arch();rabbit(.7,1.3,1.12);addBeeCarrot(world,moving,mat,-1.05,1.8);bee(-.8,2.7,1.3);bee(3,2,-1);
  for(let i=0;i<28;i++){const a=i*2.399;const r=3.3+(i%3)*.45;flower(Math.cos(a)*r,Math.sin(a)*r,.55+(i%4)*.13,[C.pink,C.yellow,C.white,0xdd7756][i%4])}
  for(const p of [[-3.5,-1],[3,-2],[0,-3.8],[-3,2.3]])bush(...p);
  fence(-1.4,-3.7,8);fence(2.5,-2.7,4);
@@ -37,12 +38,19 @@ export function createWorld(el,theme,onReady){
  const sign=group(2.8,.2,.1);box(sign,0xc59253,0,.65,0,1,.95,.12);box(sign,0x475447,0,.67,.075,.85,.78,.02);const l=label('BE HAPPY',.76,.21);l.position.set(0,.76,.1);sign.add(l);for(const s of [-1,1])box(sign,0xc59253,s*.37,.23,0,.09,.5,.1);
  const cart=group(-2.7,.3,1.7);box(cart,0xcb644d,0,.32,0,1.1,.5,.65);for(const s of [-1,1]){const w=cyl(cart,0x3d4840,s*.6,0,0,.22,.1);w.rotation.z=Math.PI/2}box(cart,C.yellow,.9,.3,0,.9,.06,.08);for(let i=0;i<4;i++){const f=flower(-2.9+i*.18,1.7,.45,C.yellow);f.position.y=.75}
  } else if(theme===1){
- rabbit(2.3,1.2,.86);carrot(3.6,1.6);boat(-.6,1.4,true);const moon=ball(world,C.yellow,.8,4.5,-3.3,1.62,1.62,.36);for(let i=0;i<8;i++)ball(world,0xe7b848,.8+Math.sin(i*2.4)*1.2,4.5+Math.cos(i*2.4)*1.2,-2.95,.14+(i%3)*.05,.14,.025);
+ // The seated bunny rests on a pier, matching the poster's river terrace.
+ box(world,0xa6acb7,2.6,.29,1.15,2.9,.45,1.95);box(world,C.cream,2.6,.525,1.15,3.02,.08,2.04);
+ for(let i=0;i<8;i++)cyl(world,C.cream,1.25+i*.38,.84,.25,.035,.55);
+ box(world,C.cream,2.58,1.12,.25,2.8,.055,.055);box(world,C.cream,2.58,.79,.25,2.8,.035,.035);
+ rabbit(2.3,1.2,.86);const pierCarrot=carrot(3.6,1.6);pierCarrot.position.y=.60;boat(-.6,1.4,true);const moon=ball(world,C.yellow,.8,4.5,-3.3,1.62,1.62,.36);for(let i=0;i<8;i++)ball(world,0xe7b848,.8+Math.sin(i*2.4)*1.2,4.5+Math.cos(i*2.4)*1.2,-2.95,.14+(i%3)*.05,.14,.025);
  const tower=group(-3,.12,-2);cyl(tower,C.cream,0,2,0,.17,4);for(const y of [1,2.8,4]){ball(tower,0xc76c95,0,y,0,y===2.8?.65:.4,.38,y===2.8?.65:.4);cyl(tower,0x656494,0,y-.05,0,y===2.8?.66:.41,.14)}cyl(tower,C.cream,0,4.7,0,.06,1.2);ball(tower,C.yellow,0,5.32,0,.09);
  for(let i=0;i<8;i++){const x=-1.9+i*.7;const h=.7+(i*7%5)*.32;box(world,[0x526d9e,0x6588ab,0x7270a0][i%3],x,h/2,-3.2,.48,h,.55);for(let k=0;k<3;k++)box(world,C.yellow,x,h*.25+k*.25,-2.91,.09,.1,.02)}
  for(let i=0;i<18;i++){const a=i*2.4;ball(world,C.yellow,Math.cos(a)*4.1,2.6+(i%5)*.6,-2-Math.sin(a),.045)}
  for(let i=0;i<18;i++){const ring=mesh(new T.TorusGeometry(.22+(i%3)*.1,.012,5,32),0xb6d9da,world,Math.sin(i*4)*4.3,.16,Math.cos(i*4)*4.1);ring.rotation.x=Math.PI/2;moving.push(t=>{ring.scale.setScalar(1+Math.sin(t+i)*.2)})}
  }else{
+ // Cream stone landing supports the lakeside sitting pose.
+ cyl(world,0xd7c4a5,1.8,.30,1.6,1.15,.45);cyl(world,0xecdbc0,1.8,.535,1.6,1.18,.06);
+ for(let i=0;i<7;i++){const a=i*.9;ball(world,0xf5e8d0,1.8+Math.cos(a)*.89,.575,1.6+Math.sin(a)*.89,.12,.014,.09)}
  rabbit(1.8,1.6,1);carrot(.3,2.4);boat(-1.9,.8);boat(2.7,-2.2);
  const bridge=group(-2,.2,-2.3);const arc=mesh(new T.TorusGeometry(1.1,.2,10,40,Math.PI),0xe9d5b3,bridge,0,0,0);arc.scale.set(1.7,1,1);for(let i=0;i<13;i++){const x=(i-6)*.28;const y=Math.sqrt(Math.max(0,1-(x/1.85)**2));box(bridge,C.cream,x,y+.33,.2,.075,.45,.08)}
  const pagoda=group(-3.6,.2,-2.8);for(let i=0;i<5;i++){const w=1.15-i*.15;box(pagoda,0xf1d3ab,0,.25+i*.48,0,w,.4,w);const roof=mesh(new T.ConeGeometry(w*.87,.32,4),0x967495,pagoda,0,.53+i*.48,0);roof.rotation.y=Math.PI/4}cyl(pagoda,C.yellow,0,2.9,0,.04,.55);
