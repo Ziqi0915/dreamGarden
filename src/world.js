@@ -46,7 +46,11 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
   const cloudOpacity=Math.min(1,Math.max(cloudW*(1-starW),rainW*.92,snowW*.55));
   const warm=Math.max(0,1-t/.4),cloudTint=mixHex(mixHex(mixHex(mixHex(0xfff7ee,0xffc7a4,warm),0xff8d58,sunset*.9),0x9eb0c0,rainW),0xfbfdff,snowW);
   cloudTintHex=cloudTint;cloudMats.forEach(m=>{m.opacity=cloudOpacity;m.color.setHex(cloudTint)});
-  clouds.forEach(g=>{g.visible=cloudOpacity>.04;const s=g.userData.s*(1+rainW*.06);g.scale.set(s,s*.88,s*.72)});
+  clouds.forEach(g=>{
+   g.visible=cloudOpacity>.04;const s=g.userData.s*(1+rainW*.06);
+   g.scale.set(s,s*.88,s*.72);
+   g.userData.weather={rain:rainW,snow:snowW,rainbow:rbW,sunset,star:starW};
+  });
   rain.visible=rainW>.04;rainMat.opacity=rainW;snow.visible=snowW>.04;snowMats.forEach(m=>m.opacity=snowW);
   rbGroup.visible=rbW>.04;rbMats.forEach((m,i)=>m.opacity=.8*Math.min(1,Math.max(0,rbW*1.6-i*.1)));applyCover(snowW*snowW*(3-2*snowW));
   starDotMat.opacity=starW;starLineMat.opacity=starW;starGroup.visible=starW>.04;feltClouds.forEach(g=>g.visible=false);
@@ -74,12 +78,22 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
  for(let i=0;i<12;i++){const a=i/12*Math.PI*2,r=new T.Mesh(rayGeo,rayMat);r.position.set(-Math.sin(a)*.8,Math.cos(a)*.8,0);r.rotation.z=a;r.scale.setScalar(i%2?.72:1);r.renderOrder=3;sunRays.add(r)}
  const sunDisc=new T.Mesh(new T.CircleGeometry(.62,40),plain(0xfff7dc,1));sunDisc.renderOrder=3;
  sunPivot.add(sunHalo,sunRays,sunDisc);
- const cloudMats=[],clouds=[];
+ const cloudMats=[],clouds=[],cloudMotion=[];
  const cloudMat=new T.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:1,emissive:0xd6e0eb,emissiveIntensity:.22,transparent:true,depthWrite:false});cloudMats.push(cloudMat);
  const cloudGeometries=Array.from({length:3},(_,i)=>createCloudGeometry(i));
  [2.3,1.8,2.5,1.7].forEach((s,n)=>{
-  const g=new T.Group();g.visible=false;g.userData={s};skyFx.add(g);clouds.push(g);
+  const g=new T.Group();g.visible=false;g.userData={s,phase:n*1.73,baseRotation:(n%3-1)*.09};skyFx.add(g);clouds.push(g);
   const cloud=new T.Mesh(cloudGeometries[n%3],cloudMat);cloud.name='soft-sky-cloud';cloud.rotation.z=(n%3-1)*.09;g.add(cloud);
+  cloudMotion.push(t=>{
+   const weather=g.userData.weather||{},rain=weather.rain||0,snow=weather.snow||0,rainbow=weather.rainbow||0;
+   const speed=.12+rain*.26+snow*.08+rainbow*.18;
+   const anchor=g.userData.anchor||(g.userData.anchor=g.position.clone());
+   g.position.x=anchor.x+Math.sin(t*speed+g.userData.phase)*(.035+rain*.12+rainbow*.06);
+   g.position.y=anchor.y+Math.sin(t*speed*.7+g.userData.phase)*(.018+rain*.045+snow*.015);
+   g.rotation.z=g.userData.baseRotation+Math.sin(t*(.26+rain*.8)+g.userData.phase)*(.012+rain*.04);
+   const pulse=1+Math.sin(t*.7+g.userData.phase)*(.012+rainbow*.025);
+   g.scale.set(g.userData.s*(1+rain*.06)*pulse,g.userData.s*.88*(1+Math.sin(t*.55+g.userData.phase)*(.01+snow*.018)),g.userData.s*.72);
+  });
  });
  const rainSeeds=scatter(150,17,15,.2,6.2),snowSeeds=scatter(80,16,14,.3,6.8),crystalSeeds=scatter(26,16,14,.3,6.8,500);
  const rain=new T.Group(),rainMat=plain(0xdcecfa,0,{map:dropTex});
@@ -200,7 +214,7 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
  }
 
  setSky(hour);
- const world=new T.Group();scene.add(world);const moving=[tickWeather];const mats=new Map();const textiles=theme===0?createTextilePalette():null;
+ const world=new T.Group();scene.add(world);const moving=[tickWeather,...cloudMotion];const mats=new Map();const textiles=theme===0?createTextilePalette():null;
  const denimColors=new Set([0x355a80,0x2e5075,0x9eb0bc]);const plushColors=new Set([0xfffcf3,0xfffcf0,0xf5d273]);
  function mat(color){if(!mats.has(color))mats.set(color,textiles?textiles.get(color,denimColors.has(color)?'denim':plushColors.has(color)?'plush':'felt'):new T.MeshStandardMaterial({color,roughness:.8}));return mats.get(color)}
  function mesh(g,color,parent=world,x=0,y=0,z=0){const m=new T.Mesh(g,mat(color));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
@@ -219,7 +233,17 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
  function bee(x,y,z){const g=group(x,y,z);ball(g,C.yellow,0,0,0,.3,.29,.44);for(const k of [-.18,.12]){const stripe=cyl(g,0x554431,0,0,k,.3,.09);stripe.rotation.x=Math.PI/2}for(const s of [-1,1]){ball(g,0xfff8ed,s*.28,.2,0,.24,.08,.33);ball(g,0x302c29,s*.1,.07,.4,.045)}moving.push(t=>{g.position.y=y+Math.sin(t*2+x)*.23;g.position.x=x+Math.sin(t*.8)*.4;g.rotation.z=Math.sin(t*5)*.12})}
  function arch(){const g=group(0,.16,-1.8);mesh(new T.TorusGeometry(1.85,.24,20,56,Math.PI),C.leaf,g,0,1.55,0);for(const s of [-1,1])cyl(g,C.leaf,s*1.85,.8,0,.24,1.6);const l=label('STAYREAL',2.6,.55);l.position.set(0,2.65,.26);g.add(l);const colors=[C.pink,C.yellow,C.white,0xf3b7c8,0xffd56a];for(let i=0;i<13;i++){const a=(i+.5)/13*Math.PI,blossom=new T.Group(),color=colors[i%colors.length];blossom.position.set(Math.cos(a)*2.02,1.55+Math.sin(a)*2.02,.22);blossom.scale.setScalar(.55);g.add(blossom);for(let p=0;p<5;p++){const ang=p/5*Math.PI*2,petal=ball(blossom,color,Math.cos(ang)*.2,Math.sin(ang)*.2,.02,.085,.2,.045);petal.rotation.z=ang-Math.PI/2;luminousPetal(petal)}luminousPetal(ball(blossom,0xfff1b8,0,0,.06,.095,.095,.05),1.15);luminousBloom(blossom,[0,0,.04],1.1);plantCap(blossom,0,.02,.06,.64,.32,.56)}}
  function fence(x,z,n=5){const g=group(x,.12,z);for(let i=0;i<n;i++){box(g,C.cream,i*.43,.48,0,.14,.9,.13);const cap=mesh(new T.ConeGeometry(.105,.16,4),C.cream,g,i*.43,.99,0);cap.rotation.y=Math.PI/4}box(g,C.cream,(n-1)*.215,.35,0,n*.43,.09,.09);box(g,C.cream,(n-1)*.215,.7,0,n*.43,.09,.09)}
- function cloud(x,y,z){const g=group(x,y,z);feltClouds.push(g);for(let i=0;i<4;i++)ball(g,night?0xa0a5cc:C.white,(i-1.5)*.4,Math.sin(i)*.13,0,.45,.25,.25).name='felt-cloud';moving.push(t=>{g.position.x=x+Math.sin(t*.25+x)*.25})}
+ function cloud(x,y,z){const g=group(x,y,z);feltClouds.push(g);for(let i=0;i<4;i++)ball(g,night?0xa0a5cc:C.white,(i-1.5)*.4,Math.sin(i)*.13,0,.45,.25,.25).name='felt-cloud';moving.push(t=>{
+   const weather=g.userData.weather||{};
+   const rain=weather.rain||0,snow=weather.snow||0,rainbow=weather.rainbow||0,sunset=weather.sunset||0;
+   const speed=.18+rain*.32+snow*.10+rainbow*.22;
+   const bob=Math.sin(t*speed+g.userData.phase)*(.035+rain*.08+snow*.025);
+   g.position.x=x+Math.sin(t*speed+x+g.userData.phase)*(.18+rain*.30+rainbow*.18);
+   g.position.y=y+bob;
+   g.rotation.z=g.userData.baseRotation+Math.sin(t*(.32+rain*.8)+g.userData.phase)*(.018+rain*.055);
+   const pulse=1+Math.sin(t*.7+g.userData.phase)*(.018+rainbow*.035);
+   g.scale.x*=pulse;g.scale.y*=1+Math.sin(t*.55+g.userData.phase)*(.012+snow*.025);
+  })}
  function boat(x,z,large=false){const g=group(x,.42,z);const hull=ball(g,large?0x253e68:0xb76f3e,0,0,0,large?1.8:1.1,.35,large?.85:.48);box(g,C.cream,0,.35,0,large?3:1.75,.18,large?1.3:.75);box(g,large?C.cream:0xc99755,0,.65,-.08,large?2.15:1.1,.5,large?.85:.65);box(g,large?C.yellow:0xdaa343,0,.97,0,large?2.4:1.4,.12,large?1:.8);for(let i=0;i<5;i++)box(g,0x477a96,(i-2)*(large?.4:.21),.7,large?.46:.34, .13,.21,.7); // windows
  moving.push(t=>{g.position.y=.43+Math.sin(t*1.2+x)*.09;g.rotation.z=Math.sin(t*1.3)*.035;g.position.x=x+Math.sin(t*.3)*.23});return g}
  if(theme===0){

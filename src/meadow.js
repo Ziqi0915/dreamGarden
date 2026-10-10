@@ -57,7 +57,8 @@ export function addLivingMeadow(world,moving){
         float phase=instanceMatrix[3].x*.8+instanceMatrix[3].z*.65;
         transformed.x+=sin(meadowTime*1.3+phase)*.09*position.y*position.y;
         transformed.z+=cos(meadowTime*.9+phase)*.035*position.y*position.y;`);
-    shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.975,0.985,1.0),meadowSnow);');
+    shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nuniform float meadowSnow;')
+      .replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.975,0.985,1.0),meadowSnow);');
   };
   material.customProgramCacheKey=()=> 'living-meadow-wind-snow-v1';
   const grass=new T.InstancedMesh(bladeGeometry(),material,tufts.length*6);
