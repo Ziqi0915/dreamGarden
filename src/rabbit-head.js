@@ -27,7 +27,7 @@ function sculptureDistance(x, y, z) {
     const c = Math.cos(angle), s = Math.sin(angle);
     // Thick capsule ears have parallel sides and a rounded end, like the video.
     const ex = c * dx + s * dy, ey = -s * dx + c * dy;
-    const nearest = Math.max(-.22, Math.min(.22, ey));
+    const nearest = Math.max(-.16, Math.min(.16, ey));
     const ear = Math.hypot(ex, ey - nearest, z * (.21 / .19)) - .21;
     d = smoothUnion(d, ear, .105);
   }

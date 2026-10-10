@@ -1,5 +1,6 @@
 import * as T from 'three';
 import {addRabbitHead} from './rabbit-head';
+import {finishTextile} from './textiles';
 
 // Shared sculpted characters with video-inspired rounded toy proportions.
 function sculpt(parent, mat) {
@@ -28,7 +29,7 @@ export function addRabbit(world,moving,mat,x,z,scale=1,theme=0) {
   const g=new T.Group();g.name='video-reference-rabbit';g.position.set(x,.2,z);g.scale.setScalar(scale);world.add(g);
   const {oval,stroke,patch,rounded,mesh}=sculpt(g,mat);
   const sitting=theme!==0,lake=theme===2;
-  const body=new T.Group();g.add(body);
+  const body=new T.Group();body.scale.set(.93,.80,.96);g.add(body);
   // UV stripes follow the rounded shirt and sleeves, with no detached bands.
   function stripedFabric(bands) {
     const canvas=document.createElement('canvas');canvas.width=16;canvas.height=512;
@@ -38,7 +39,7 @@ export function addRabbit(world,moving,mat,x,z,scale=1,theme=0) {
       ctx.fillStyle=Math.floor(y*bands)%2?'#fff9ed':'#b74035';ctx.fillRect(0,row,16,1);
     }
     const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;
-    const fabric=mat(P.white).clone();fabric.map=texture;fabric.roughness=.88;return fabric;
+    const fabric=mat(P.white).clone();fabric.map=texture;fabric.roughness=.88;if(theme===0)finishTextile(fabric,'canvas');return fabric;
   }
   const shirtFabric=!lake?stripedFabric(8):null;
   const sleeveFabric=!lake?stripedFabric(6):null;
@@ -50,7 +51,7 @@ export function addRabbit(world,moving,mat,x,z,scale=1,theme=0) {
     const arm=new T.Group();arm.position.set(side*.46,1.08,0);body.add(arm);arm.rotation.z=side*.54;arms.push(arm);
     const sleeve=oval(lake?0x73a4be:P.white,0,-.24,0,.19,.35,.20,arm);
     if(sleeveFabric)sleeve.material=sleeveFabric;
-    oval(P.white,0,-.57,.015,.175,.20,.16,arm);
+    oval(P.white,0,-.57,.015,.175,.20,.16,arm).name='plush-paw';
   }
   if(lake) {
     patch(rounded(-.46,.45,.92,.73,.1),0x73a4be,.19,.04,.04,body);
@@ -89,12 +90,12 @@ export function addRabbit(world,moving,mat,x,z,scale=1,theme=0) {
       for(let i=0;i<2;i++)stroke(P.white,[[-.115,-.30+i*.03,.23],[0,-.285+i*.03,.29],[.115,-.30+i*.03,.23]],.016,leg);
     }
   }
-  oval(P.white,0,.61,-.33,.19,.18,.16,body);
-  const head=addRabbitHead(g,mat);
+  oval(P.white,0,.61,-.33,.19,.18,.16,body).name='plush-tail';
+  const head=addRabbitHead(g,mat);head.scale.set(1.055,1,1.035);head.position.y=-.27;
   // Garden iris and lake lotus leaf umbrella are held by the left hand.
   let plant=null;
   if(theme===0) {
-    plant=new T.Group();plant.position.set(-.84,.58,.12);plant.rotation.z=.1;g.add(plant);
+    plant=new T.Group();plant.position.set(-.78,.46,.12);plant.rotation.z=.1;g.add(plant);
     stroke(P.leaf,[[0,0,0],[-.10,.7,0],[-.15,1.55,0],[-.19,2.1,0]],.046,plant);
     const leaf=oval(P.leaf,-.19,.84,-.02,.115,.54,.045,plant);leaf.rotation.z=.38;
     for(let i=0;i<6;i++) {const angle=i*Math.PI/3;const p=oval(i%2?0x6f579b:0x8370ad,-.18+Math.cos(angle)*.33,2.10+Math.sin(angle)*.31,.02,.28,.38,.10,plant);p.rotation.z=angle-Math.PI/2;if(i<3)oval(0xf4cf5b,-.18+Math.cos(angle)*.16,2.10+Math.sin(angle)*.16,.13,.10,.13,.025,plant)}
@@ -105,7 +106,7 @@ export function addRabbit(world,moving,mat,x,z,scale=1,theme=0) {
     for(let i=0;i<7;i++) {const a=i*Math.PI*2/7;stroke(0x529636,[[-.1,2.64,0],[-.1+Math.cos(a)*.42,2.65,Math.sin(a)*.31],[-.1+Math.cos(a)*.85,2.59,Math.sin(a)*.57]],.014,plant)}
     oval(0xe9f8d9,.2,2.67,.12,.075,.035,.07,plant);
   }
-  const baseY=sitting?.35:.2;
+  const baseY=sitting?.40:.2;
   moving.push(t=>{g.position.y=baseY+Math.sin(t*1.7)*.026;g.rotation.y=.32+Math.sin(t*.65)*.045;arms[1].rotation.z=.52+Math.sin(t*1.6)*.045;head.rotation.z=Math.sin(t*.72)*.018;if(plant)plant.rotation.z=.08+Math.sin(t*.8)*.025});
   return g;
 }
@@ -115,7 +116,7 @@ export function addBeeCarrot(world,moving,mat,x,z) {
   const {oval,stroke,mesh}=sculpt(g,mat);
   const gold=0xf5d273,brown=0x684331;
   // Pale golden hood surrounds an orange carrot face; leaves remain exposed.
-  oval(gold,0,1.29,0,.59,.62,.36);
+  oval(gold,0,1.29,0,.59,.62,.36).name='bee-plush-hood';
   oval(0xf5b650,0,1.28,.30,.46,.46,.13);
   oval(P.orange,0,1.28,.40,.385,.385,.055);
   for(const side of [-1,1]) {
