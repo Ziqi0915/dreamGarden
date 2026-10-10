@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {luminousPetal,luminousBloom} from './night-flowers';
 import { MarchingCubes } from 'three/addons/objects/MarchingCubes.js';
 
 const HEAD = { x: .80, y: .70, z: .60, cy: 1.98 };
@@ -163,7 +164,7 @@ export function addRabbitHead(parent, mat) {
   flowerXs.forEach((x, i) => {
     const y = 2.555 - .245 * (Math.abs(x) / .70) ** 1.35;
     const z = frontSurface(x, y);
-    const flower = new T.Group();
+    const flower = new T.Group();luminousBloom(flower,[0,0,.035],.24,.55);
     flower.position.set(x, y, z + .033);
     const normal = new T.Vector3(x / (HEAD.x * HEAD.x), (y - HEAD.cy) / (HEAD.y * HEAD.y), z / (HEAD.z * HEAD.z)).normalize();
     flower.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), normal);
@@ -175,9 +176,9 @@ export function addRabbitHead(parent, mat) {
     for (let petal = 0; petal < 5; petal++) {
       const a = petal / 5 * Math.PI * 2;
       const p = oval(pastels[i % pastels.length], Math.sin(a) * size * .63, Math.cos(a) * size * .63, .008, size * .43, size * .67, .021, flower);
-      p.rotation.z = -a;
+      p.rotation.z = -a;luminousPetal(p,.65);
     }
-    oval(0xf0cf77, 0, 0, .035, size * .33, size * .33, .020, flower);
+    luminousPetal(oval(0xf0cf77, 0, 0, .035, size * .33, size * .33, .020, flower),.8);
   });
 
   // A genuinely tapered, solid carrot hair clip sits sideways at the left ear.

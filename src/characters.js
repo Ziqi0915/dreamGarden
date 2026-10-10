@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {luminousPetal,luminousBloom} from './night-flowers';
 import {TessellateModifier} from 'three/addons/modifiers/TessellateModifier.js';
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {addRabbitHead} from './rabbit-head';
@@ -137,10 +138,10 @@ export function addRabbit(world,moving,mat,x,z,scale=1,theme=0) {
   // Garden iris and lake lotus leaf umbrella are held by the left hand.
   let plant=null;
   if(theme===0) {
-    plant=new T.Group();plant.position.set(-.78,.46,.12);plant.rotation.z=.1;g.add(plant);
+    plant=new T.Group();plant.position.set(-.78,.46,.12);plant.rotation.z=.1;g.add(plant);luminousBloom(plant,[-.18,2.10,.04],1.9,.55);
     stroke(P.leaf,[[0,0,0],[-.10,.7,0],[-.15,1.55,0],[-.19,2.1,0]],.046,plant);
     const leaf=oval(P.leaf,-.19,.84,-.02,.115,.54,.045,plant);leaf.rotation.z=.38;
-    for(let i=0;i<6;i++) {const angle=i*Math.PI/3;const p=oval(i%2?0x6f579b:0x8370ad,-.18+Math.cos(angle)*.33,2.10+Math.sin(angle)*.31,.02,.28,.38,.10,plant);p.rotation.z=angle-Math.PI/2;if(i<3)oval(0xf4cf5b,-.18+Math.cos(angle)*.16,2.10+Math.sin(angle)*.16,.13,.10,.13,.025,plant)}
+    for(let i=0;i<6;i++) {const angle=i*Math.PI/3;const p=oval(i%2?0x6f579b:0x8370ad,-.18+Math.cos(angle)*.33,2.10+Math.sin(angle)*.31,.02,.28,.38,.10,plant);p.rotation.z=angle-Math.PI/2;luminousPetal(p,.22);if(i<3)luminousPetal(oval(0xf4cf5b,-.18+Math.cos(angle)*.16,2.10+Math.sin(angle)*.16,.13,.10,.13,.025,plant))}
   } else if(lake) {
     plant=new T.Group();plant.position.set(-.93,.7,.08);g.add(plant);
     stroke(P.leaf,[[0,0,0],[-.04,1.3,0],[-.12,2.45,0]],.043,plant);
@@ -187,8 +188,8 @@ export function addBeeCarrot(world,moving,mat,x,z) {
   }
   // The sunflower held by the costumed carrot is visible in the poster.
   stroke(P.leaf,[[-.10,.33,.34],[-.36,.72,.37]],.025);
-  for(let i=0;i<9;i++){const a=i*Math.PI*2/9;const petal=oval(0xe9b73e,-.37+Math.cos(a)*.20,.83+Math.sin(a)*.20,.42,.09,.15,.028);petal.rotation.z=a-Math.PI/2}
-  oval(0x9b682e,-.37,.83,.457,.165,.165,.035);
+  for(let i=0;i<9;i++){const a=i*Math.PI*2/9;const petal=oval(0xe9b73e,-.37+Math.cos(a)*.20,.83+Math.sin(a)*.20,.42,.09,.15,.028);petal.rotation.z=a-Math.PI/2;luminousPetal(petal)}
+  luminousPetal(oval(0x9b682e,-.37,.83,.457,.165,.165,.035),.7);luminousBloom(g,[-.37,.83,.47],.9,.7);
   for(const [dx,dy] of [[-.04,.04],[.07,.035],[.02,-.075]])oval(brown,-.37+dx,.83+dy,.493,.025,.025,.012);
   moving.push(t=>{g.position.y=.24+Math.sin(t*2)*.07;g.rotation.y=.32+Math.sin(t*.75)*.06;g.rotation.z=-.08+Math.sin(t*1.5)*.06;wings.forEach((w,i)=>{w.rotation.y=Math.sin(t*8)*(i?-.20:.20)})});
   return g;

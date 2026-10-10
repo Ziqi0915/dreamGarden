@@ -1,11 +1,12 @@
 import * as T from 'three';
+import {createNightFlowers,luminousPetal,luminousBloom} from './night-flowers';
 import {createCloudGeometry} from './sky-clouds';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {addRabbit,addBeeCarrot} from './characters';
 import {createTextilePalette,decoratePlushGarden,addFeltGround} from './textiles';
 const C={green:0x6d995e,leaf:0x4e8452,yellow:0xf5c84e,pink:0xeb8da3,cream:0xfff7df,white:0xfffcf0,blue:0x496982,orange:0xee8545};
 export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
- const scene=new T.Scene();const night=theme===1;let viewChanged=true;
+ const scene=new T.Scene();const night=theme===1;let viewChanged=true;let nightFlowers=null,flowerNight=0;
  const renderer=new T.WebGLRenderer({antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.setClearColor(0xf6f1e3,1);renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.3;el.appendChild(renderer.domElement);
  const skyCanvas=document.createElement('canvas');skyCanvas.width=512;skyCanvas.height=512;const skyCtx=skyCanvas.getContext('2d');
  const skyTexture=new T.CanvasTexture(skyCanvas);skyTexture.colorSpace=T.SRGBColorSpace;
@@ -40,7 +41,7 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
   const gate=(start,end,fade=.08)=>Math.max(0,Math.min(1,Math.min((t-(start-fade))/fade,((end+fade)-t)/fade)));
   const cloudW=Math.max(gate(0,.66,.1),gate(.7,.82,.05)*.85);
   const sunset=gate(.59,.66,.04),rainW=gate(.70,.74,.035),rbW=gate(.79,.81,.025),snowW=gate(.86,.90,.04),starW=gate(.98,1.08,.06);
-  skyT=t;sunPivot.visible=false;
+  skyT=t;sunPivot.visible=false;flowerNight=starW;nightFlowers?.setNight(starW);
   const cloudOpacity=Math.min(1,Math.max(cloudW*(1-starW),rainW*.92,snowW*.55));
   const warm=Math.max(0,1-t/.4),cloudTint=mixHex(mixHex(mixHex(mixHex(0xfff7ee,0xffc7a4,warm),0xff8d58,sunset*.9),0x9eb0c0,rainW),0xe7eef6,snowW*.75);
   cloudTintHex=cloudTint;cloudMats.forEach(m=>{m.opacity=cloudOpacity;m.color.setHex(cloudTint)});
@@ -208,7 +209,7 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
  cyl(world,night?0x54618c:theme===0?0xd4bf9d:0xb3ba89,0,-.32,0,5.4,.65);cyl(world,night?0x487d9e:theme===2?0x80bfc5:0x9caf7c,0,.02,0,5.36,.16);
  // sculpted pebble edge
  for(let i=0;i<55;i++){const a=i/55*Math.PI*2;ball(world,night?0x7a87ae:0xe1d4b3,Math.cos(a)*5.1,.17,Math.sin(a)*5.1,.19,.13,.17)}
- function flower(x,z,size=1,color=C.pink){const g=group(x,.16,z);g.scale.setScalar(size);cyl(g,C.leaf,0,.48,0,.045,.85);const leaf=ball(g,C.green,.17,.35,0,.23,.065,.12);leaf.rotation.z=.5;for(let i=0;i<5;i++){const a=i*Math.PI*2/5;ball(g,color,Math.cos(a)*.23,1+Math.sin(a)*.23,0,.19,.19,.095)}ball(g,C.yellow,0,1,.1,.14,.14,.08);moving.push(t=>{g.rotation.z=Math.sin(t*1.2+x)*.065});return g}
+ function flower(x,z,size=1,color=C.pink){const g=group(x,.16,z);g.scale.setScalar(size);cyl(g,C.leaf,0,.48,0,.045,.85);const leaf=ball(g,C.green,.17,.35,0,.23,.065,.12);leaf.rotation.z=.5;for(let i=0;i<5;i++){const a=i*Math.PI*2/5;luminousPetal(ball(g,color,Math.cos(a)*.23,1+Math.sin(a)*.23,0,.19,.19,.095))}luminousPetal(ball(g,C.yellow,0,1,.1,.14,.14,.08),1.2);luminousBloom(g,[0,1,.06],1.6);moving.push(t=>{g.rotation.z=Math.sin(t*1.2+x)*.065});return g}
  function bush(x,z,s=1){const g=group(x,.15,z);for(let i=0;i<5;i++)ball(g,i%2?C.green:C.leaf,Math.sin(i*2.3)*.4,.35+i%2*.2,Math.cos(i*2.3)*.3,.52,.55,.5).name='felt-shrub';g.scale.setScalar(s);return g}
  function rabbit(x,z,scale=1){return addRabbit(world,moving,mat,x,z,scale,theme)}
  function carrot(x,z){const g=group(x,.24,z);ball(g,C.orange,0,.45,0,.43,.47,.4);for(let i=0;i<3;i++){const leaf=ball(g,C.leaf,(i-1)*.17,.96,0,.13,.3,.11);leaf.rotation.z=(1-i)*.4}for(const s of [-1,1]){ball(g,C.white,s*.15,.52,.36,.1,.14,.04);ball(g,0x30312d,s*.15,.52,.397,.05,.075,.022)}ball(g,0x30312d,0,.3,.39,.08,.03,.02);moving.push(t=>{g.rotation.z=Math.sin(t*1.7+z)*.09});return g}
@@ -249,7 +250,7 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
  for(const p of [[-4,1],[3.8,1],[.3,-4]])bush(...p,.7);
  }
  cloud(-3.7,theme===0?3.8:4.5,-2.7);cloud(3.7,theme===0?4.1:5,-3.7);setSky(hour);
- if(theme===0)decoratePlushGarden(world);
+ if(theme===0){decoratePlushGarden(world);nightFlowers=createNightFlowers(world,scene,glowTex);nightFlowers.setNight(flowerNight)}
  const clock=new T.Clock();let raf;let paused=false;let lastRender=-1,lastShadow=-1,time=0;
  controls.addEventListener('change',()=>{viewChanged=true});
  const skyDir=new T.Vector3(),skyRight=new T.Vector3(),skyUp=new T.Vector3();
@@ -258,8 +259,9 @@ export function createWorld(el,theme,onReady,hour=theme===1?1:.42){
  function resize(){const w=el.clientWidth,h=el.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.zoom=Math.min(1,camera.aspect/(theme===0?1.45:1.0));camera.updateProjectionMatrix();stickSky();viewChanged=true}
  const ro=new ResizeObserver(resize);ro.observe(el);resize();
  function render(){raf=requestAnimationFrame(render);const dt=clock.getDelta();if(!paused)time+=dt;controls.update();
-   if((!paused||viewChanged)&&clock.elapsedTime-lastRender>=1/30){
+   if((!paused||viewChanged||nightFlowers?.transitioning)&&clock.elapsedTime-lastRender>=1/30){
      moving.forEach(f=>f(time));
+     nightFlowers?.update(lastRender<0?dt:clock.elapsedTime-lastRender,time,camera);
      if(theme===0&&(lastShadow<0||time-lastShadow>.25)){sun.shadow.needsUpdate=true;lastShadow=time}
      renderer.render(scene,camera);lastRender=clock.elapsedTime;viewChanged=false;
    }
